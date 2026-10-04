@@ -4,15 +4,18 @@ import sys
 import uvicorn
 
 from moments.app import create_app
-from moments.config import Config
+from moments.config import load_config
 
 
 def main() -> None:
     """Load config and run FastAPI server."""
     try:
-        config = Config()
-    except Exception as e:
-        print(f"Failed to load config: {e}", file=sys.stderr)
+        config = load_config()
+    except FileNotFoundError as e:
+        print(f"Config file not found: {e}", file=sys.stderr)
+        sys.exit(1)
+    except (ValueError, Exception) as e:
+        print(f"Invalid config: {e}", file=sys.stderr)
         sys.exit(1)
 
     app = create_app(config)

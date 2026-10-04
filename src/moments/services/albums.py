@@ -120,6 +120,6 @@ def _get_cover_url(album_id: str, items: list[MediaItemDict]) -> Optional[str]:
 
     # Fallback to first item.
     if items:
-        return f"/api/albums/{items[0]['hash']}/thumb"
+        return f"/api/albums/{album_id}/media/{items[0]['hash']}/thumb"
 
     return None

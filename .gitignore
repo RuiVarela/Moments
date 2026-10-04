@@ -72,3 +72,4 @@ htmlcov/
 
 # pyenv
 # .python-version
+config.json

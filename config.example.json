@@ -1,7 +1,7 @@
 {
   "port": 8000,
-  "source_dir": "/path/to/albums",
-  "data_dir": "/path/to/data",
+  "source_dir": "/source",
+  "data_dir": "/app/data",
   "thumb_size": 200,
   "preview_size": 800
 }

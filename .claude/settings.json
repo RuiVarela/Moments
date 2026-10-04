@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(python -m py_compile src/moments/*.py)",
-      "Bash(/opt/homebrew/bin/python3 -m py_compile src/moments/*.py src/moments/**/*.py)"
+      "Bash(/opt/homebrew/bin/python3 -m py_compile src/moments/*.py src/moments/**/*.py)",
+      "Bash(venv/bin/pytest tests/ -v)",
+      "Bash(venv/bin/pytest tests/ -v --tb=short)"
     ]
   }
 }

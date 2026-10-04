@@ -1,21 +1,21 @@
+import json
+import os
 from pathlib import Path
 
 from pydantic import BaseModel, Field, field_validator
-from pydantic_settings import BaseSettings
+
+_CONFIG_ENV_VAR = "MOMENTS_CONFIG"
+_CONFIG_DEFAULT_FILE = "config.json"
 
 
-class Config(BaseSettings):
-    """Application configuration loaded from JSON and env vars."""
+class Config(BaseModel):
+    """Application configuration."""
 
     port: int = Field(default=8000, description="HTTP server port")
     source_dir: Path = Field(description="Path to album folders")
     data_dir: Path = Field(description="Path for extracted metadata")
     thumb_size: int = Field(default=200, description="Thumbnail max dimension (px)")
     preview_size: int = Field(default=800, description="Preview max dimension (px)")
-
-    class Settings:
-        env_file = "config.json"
-        env_file_encoding = "utf-8"
 
     @field_validator("source_dir", "data_dir", mode="before")
     @classmethod
@@ -44,3 +44,30 @@ class Config(BaseSettings):
         if v <= 0:
             raise ValueError(f"Size must be positive, got {v}")
         return v
+
+
+def load_config(path: Path | None = None) -> Config:
+    """Load configuration from JSON file.
+
+    Args:
+        path: explicit config file path. If None, checks $MOMENTS_CONFIG
+              env var, then falls back to 'config.json' in cwd.
+
+    Raises:
+        FileNotFoundError: config file not found.
+        ValueError: invalid config (e.g., source_dir missing).
+    """
+    if path is None:
+        # Check env var, then default.
+        env_path = os.environ.get(_CONFIG_ENV_VAR)
+        path = Path(env_path) if env_path else Path(_CONFIG_DEFAULT_FILE)
+
+    if not path.exists():
+        raise FileNotFoundError(f"Config file not found: {path}")
+
+    try:
+        text = path.read_text()
+        data = json.loads(text)
+        return Config.model_validate(data)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON in {path}: {e}") from e

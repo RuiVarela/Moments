@@ -134,8 +134,9 @@ class ExtractionManager:
             new_items: list[MediaItemDict] = []
 
             for file_info in scanned:
-                rel_path: Path = file_info["path"]
+                rel_path_str: str = file_info["path"]
                 item_type: str = file_info["type"]
+                rel_path = Path(rel_path_str)
                 item_hash = data.media_hash(rel_path)
                 full_path = album_path / rel_path
 

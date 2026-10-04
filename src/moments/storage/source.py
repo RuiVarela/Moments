@@ -70,9 +70,9 @@ def scan_album(album_path: Path) -> list[dict[str, object]]:
             ext = entry.suffix.lower()
 
             if ext in _IMAGE_EXTS:
-                items.append({"path": rel_path, "type": "image"})
+                items.append({"path": str(rel_path), "type": "image"})
             elif ext in _VIDEO_EXTS:
-                items.append({"path": rel_path, "type": "video"})
+                items.append({"path": str(rel_path), "type": "video"})
 
     except OSError as e:
         _logger.error(f"Failed to scan album {album_path}: {e}")
