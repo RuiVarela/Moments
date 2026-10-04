@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  moments:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Source albums folder (read-only).
+      - ${SOURCE_DIR:-.}:/source:ro
+      # Data folder for extracted metadata (persistent).
+      - moments_data:/app/data
+      # Config file.
+      - ./config.json:/app/config.json:ro
+    environment:
+      # Config file location (loaded from working dir).
+      MOMENTS_CONFIG: /app/config.json
+    restart: unless-stopped
+
+volumes:
+  moments_data:
+    driver: local
