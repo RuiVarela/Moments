@@ -50,19 +50,40 @@ Full strict typing throughout:
 - `py.typed` marker; mypy --strict passes.
 - No bare `dict`, `Any`, or untyped calls.
 
-## Config (config.py)
+## Configuration (config.py)
 
-Loads from `config.json` (or `$MOMENTS_CONFIG` env var). Validates at startup:
+Loads from `config.json` file (or `$MOMENTS_CONFIG` env var). Validates at startup.
 
-```python
-port: int                  # HTTP server port
-source_dir: Path           # Album root (must exist, is directory)
-data_dir: Path             # Extracted metadata storage
-thumb_size: int = 200      # Thumbnail max dimension
-preview_size: int = 800    # Preview max dimension
+### File: `config.json`
+
+**Required**:
+- `port` (int): HTTP server port (default 8000).
+- `source_dir` (string): path to album folders root (validated: must exist, must be directory).
+- `data_dir` (string): path for extracted metadata, thumbnails, previews.
+
+**Optional**:
+- `thumb_size` (int): thumbnail max dimension in pixels (default 200).
+- `preview_size` (int): preview max dimension in pixels (default 800).
+
+### Example
+
+```json
+{
+  "port": 8000,
+  "source_dir": "/mnt/albums",
+  "data_dir": "/app/data",
+  "thumb_size": 200,
+  "preview_size": 800
+}
 ```
 
-Fails fast: missing `source_dir` raises `ValueError` on startup.
+### Validation
+
+- **Fail-fast**: missing or invalid `source_dir` raises `ValueError` at startup.
+- **Type coercion**: string paths converted to `Path` objects.
+- **Positive sizes**: `thumb_size` and `preview_size` must be > 0.
+
+Pydantic validates config against schema on load (see config.py for validators).
 
 ## Album Structure
 
@@ -262,9 +283,52 @@ _VIDEO_EXTS = {".mp4", ".webm", ".mov"}
 _INDEX_VERSION = 1  # Bump if index schema changes.
 ```
 
+## Deployment
+
+### Docker
+
+**Dockerfile** (python-slim + ffmpeg):
+- Base: `python:3.11-slim`
+- System deps: ffmpeg (for video processing)
+- Install: pyproject.toml dependencies (fastapi, uvicorn, pillow, pillow-heif)
+- Copy: src/moments and pyproject.toml
+- Expose: port 8000
+- Entry: `python -m moments`
+
+**docker-compose.yml**:
+- Service: moments (builds from Dockerfile)
+- Volumes:
+  - `${SOURCE_DIR}:/source:ro` — albums folder, mounted read-only
+  - `moments_data:/app/data` — named volume for persistence (metadata, thumbnails)
+  - `./config.json:/app/config.json:ro` — config file, mounted read-only
+- Port mapping: `8000:8000` (configurable)
+- Restart policy: `unless-stopped`
+
+### Environment Variables
+
+- `MOMENTS_CONFIG`: path to config file (default: `config.json` in working dir)
+- `SOURCE_DIR`: passed to docker-compose (defaults to current dir `.`)
+
+### Running
+
+```bash
+# Build image
+docker compose build
+
+# Start service
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop
+docker compose down
+```
+
 ## Security
 
 - **Path validation**: all file serving checks resolved path is inside album/data folders.
-- **No auth**: trusted network only.
-- **Read-only source**: mount read-only in Docker.
-- **Config validation**: fails if source_dir doesn't exist.
+- **No auth**: trusted network only (no authentication or authorization).
+- **Read-only source**: source folder mounted `:ro` (read-only) in container.
+- **Config validation**: fails fast if `source_dir` doesn't exist.
+- **Atomic writes**: index.json written atomically (tmp + rename) to prevent corruption.

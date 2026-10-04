@@ -50,11 +50,6 @@ Extraction runs in background; does not block API or UI. Progress tracked via st
 
 **Failure handling**: bad file logged, skipped; run continues. States: `idle` / `running` / `failed`.
 
-## Architecture
-- **Backend**: FastAPI + vanilla JavaScript frontend (no build step, no framework).
-- **Dependencies**: FastAPI, uvicorn, Pillow (Assumption).
-- **Layers**: routes → services → storage (per AGENTS.md hierarchy).
-
 ## API
 
 ### Endpoints
@@ -91,41 +86,6 @@ Three-page flow:
 - **Info overlay** (toggle): show date, GPS map if present (optional).
 
 No build step; vanilla JS + CSS Grid.
-
-## Configuration
-**File**: `config.json`
-
-**Required**:
-- `port` (int): HTTP port; default 8000 (Assumption).
-- `source_dir` (string): path to album folders; validated at startup (fail if missing).
-- `data_dir` (string): path for extracted metadata and thumbnails.
-
-**Optional**:
-- `thumb_size` (int): thumbnail max dimension; default 200px (Assumption).
-- `preview_size` (int): preview max dimension; default 800px (Assumption).
-
-**Example**:
-```json
-{
-  "port": 8000,
-  "source_dir": "/mnt/albums",
-  "data_dir": "/app/data",
-  "thumb_size": 200,
-  "preview_size": 800
-}
-```
-
-## Security
-- **No authentication**: app is trusted-network-only.
-- **Path traversal protection**: all file serving validated against `source_dir` and `data_dir`.
-- **Read-only source**: mount source folder read-only in container.
-
-## Deployment
-**Docker Compose**:
-- Source folder mounted `:ro` (read-only).
-- Data folder as named volume (persistent).
-- Config file mounted into container.
-- Single FastAPI service on mapped port.
 
 ## Open Questions
 (None for MVP.)
