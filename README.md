@@ -82,18 +82,7 @@ Edit `config.json`:
 - If HEIC images don't convert: pillow-heif plugin not loaded.
 - Check logs: `docker compose logs`.
 
-## Architecture
+## Documentation
 
-See [docs/global_spec.md](docs/global_spec.md) for detailed specification.
-
-### Layers
-- **Routes** (`src/moments/routes/`): FastAPI endpoints.
-- **Services** (`src/moments/services/`): business logic (albums, extraction).
-- **Storage** (`src/moments/storage/`): metadata index, file scanning.
-- **Drivers** (`src/moments/drivers/`): media processing (EXIF, video info).
-
-### Extraction
-- Triggered: on first album view or manual re-extract button.
-- Runs in background (non-blocking).
-- Incremental: skips unchanged files (path + mtime + size).
-- Failure-tolerant: bad files logged and skipped.
+- [docs/global_spec.md](docs/global_spec.md): Feature specification (user-facing).
+- [docs/backend.md](docs/backend.md): Backend implementation details (developer guide).
