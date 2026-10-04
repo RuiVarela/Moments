@@ -46,7 +46,7 @@ data_dir/<album>/previews/<hash>.jpg     # 800px (image or video poster)
 - **On album entry**: if not extracted, start automatically (background; does not block UI).
 - **Manual**: POST `/api/albums/<id>/extract` endpoint (re-extract button on frontend).
 
-Extraction runs in background; does not block API or UI. UI shows progress
+Extraction runs in background; does not block API or UI. Progress tracked via status endpoint.
 
 **Failure handling**: bad file logged, skipped; run continues. States: `idle` / `running` / `failed`.
 
@@ -56,15 +56,21 @@ Extraction runs in background; does not block API or UI. UI shows progress
 - **Layers**: routes → services → storage (per AGENTS.md hierarchy).
 
 ## API
+
+### Endpoints
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/api/albums` | GET | List all albums with counts. |
-| `/api/albums/<id>` | GET | Album metadata + media array. |
+| `/api/albums` | GET | List all albums with counts, covers, extraction status. |
+| `/api/albums/<id>` | GET | Album metadata + media array. Query params: `sort` (date\|mtime\|name), `order` (asc\|desc). |
 | `/api/albums/<id>/media/<hash>/thumb` | GET | Thumbnail (image or video poster). |
 | `/api/albums/<id>/media/<hash>/preview` | GET | Preview (image or video poster). |
 | `/api/albums/<id>/media/<hash>/original` | GET | Original file (image or video). |
 | `/api/albums/<id>/extract` | POST | Start extraction job. |
-| `/api/albums/<id>/extract/status` | GET | Extraction status. |
+| `/api/albums/<id>/extract/status` | GET | Extraction status (state, done/total, error if failed). |
+
+### Query Parameters
+- **sort**: `date` (default), `mtime`, `name` — sorting key for media items.
+- **order**: `asc` (default), `desc` — sort direction.
 
 ## Frontend
 Three-page flow:
