@@ -116,17 +116,9 @@ source_dir/
 
 ### Flow
 1. **Scan** (source.py): walk album, collect files by type (image/video).
-2. **Check incremental**: compare to index; reuse unchanged items.
-3. **Extract metadata**: EXIF date/GPS, video duration/codec/creation date.
-4. **Create thumbnails**: resize to thumb_size and preview_size.
-5. **Save index**: atomic write (tmp + rename).
-
-### Incremental Logic
-Reuse index entry if:
-- `path + mtime + size` match existing item.
-- Thumb/preview files exist.
-
-Skips unchanged files to avoid re-processing.
+2. **Extract metadata**: EXIF date/GPS, video duration/codec/creation date.
+3. **Create thumbnails**: resize to thumb_size and preview_size.
+4. **Save index**: atomic write (tmp + rename).
 
 ### States
 - `idle`: Not running, index exists or not started.

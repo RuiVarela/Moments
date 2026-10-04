@@ -121,17 +121,8 @@ class ExtractionManager:
                 job.status = ExtractionStatus.IDLE
                 return
 
-            # Load existing index for incremental check.
-            index_path = data.album_index_path(self._config.data_dir, album_id)
-            old_items: list[MediaItemDict] = (
-                data.load_index(index_path) or []
-            )
-            old_index: dict[str, MediaItemDict] = {
-                item["hash"]: item for item in old_items
-            }
-
             # Process each file.
-            new_items: list[MediaItemDict] = []
+            items: list[MediaItemDict] = []
 
             for file_info in scanned:
                 rel_path_str: str = file_info["path"]
@@ -139,17 +130,7 @@ class ExtractionManager:
                 rel_path = Path(rel_path_str)
                 item_hash = data.media_hash(rel_path)
                 full_path = album_path / rel_path
-
-                # Check if file unchanged (incremental).
                 stat = full_path.stat()
-                old_item = old_index.get(item_hash)
-
-                if old_item and self._is_unchanged(
-                    old_item, stat, item_type
-                ):
-                    new_items.append(old_item)
-                    job.done += 1
-                    continue
 
                 # Extract metadata and create thumbnails.
                 item: MediaItemDict = {
@@ -201,35 +182,17 @@ class ExtractionManager:
                         self._config.preview_size,
                     )
 
-                new_items.append(item)
+                items.append(item)
                 job.done += 1
 
             # Save index.
-            self._save_index(album_id, new_items)
+            self._save_index(album_id, items)
             job.status = ExtractionStatus.IDLE
 
         except Exception as e:
             _logger.exception(f"Extraction failed for {album_id}")
             job.error = str(e)
             job.status = ExtractionStatus.FAILED
-
-    def _is_unchanged(
-        self,
-        item: MediaItemDict,
-        stat: object,
-        item_type: str,
-    ) -> bool:
-        """Check if file unchanged compared to index entry."""
-        import os
-
-        if not isinstance(stat, os.stat_result):
-            return False
-
-        return (
-            item.get("mtime") == int(stat.st_mtime)
-            and item.get("size") == stat.st_size
-            and item.get("type") == item_type
-        )
 
     def _save_index(self, album_id: str, items: list[MediaItemDict]) -> bool:
         """Save index file."""
