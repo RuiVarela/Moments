@@ -1,6 +1,9 @@
 # Moments
 
-Self-hosted photo album. Reads folder hierarchies, extracts metadata (EXIF, GPS, video info), and serves a minimal web UI.
+Family photo gallery. Very simple list of albums. Intended to run on a low spec self hosted machine.
+Reads folder hierarchies, extracts metadata (EXIF, GPS, video info), and serves a minimal web UI.
+
+This was developed using AI.
 
 ## Development
 
@@ -84,6 +87,6 @@ Edit `config.json`:
 - Check logs: `docker compose logs`.
 
 ## Documentation
-
 - [docs/global_spec.md](docs/global_spec.md): Feature specification (user-facing).
 - [docs/backend.md](docs/backend.md): Backend implementation details (developer guide).
+- [docs/frontend.md](docs/frontend.md): Frontend implementation details (developer guide).

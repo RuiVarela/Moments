@@ -4,7 +4,11 @@
       "Bash(python -m py_compile src/moments/*.py)",
       "Bash(/opt/homebrew/bin/python3 -m py_compile src/moments/*.py src/moments/**/*.py)",
       "Bash(venv/bin/pytest tests/ -v)",
-      "Bash(venv/bin/pytest tests/ -v --tb=short)"
+      "Bash(curl -s -m 2 localhost:8000/api/albums)",
+      "Bash(venv/bin/pytest tests/test_storage.py -q)",
+      "Bash(venv/bin/python -c ' *)",
+      "Bash(venv/bin/pytest tests/test_drivers.py -q)",
+      "Bash(venv/bin/pytest tests/test_dates.py -q)"
     ]
   }
 }
