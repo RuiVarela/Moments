@@ -1,6 +1,9 @@
 # Moments
 
-Family photo gallery. Very simple list of albums. Intended to run on a low spec self hosted machine.
+Family photo gallery. 
+
+Very simple list of albums. Intended to run on a low spec self hosted machine.
+
 Reads folder hierarchies, extracts metadata (EXIF, GPS, video info), and serves a minimal web UI.
 
 This was developed using AI.
@@ -10,7 +13,7 @@ This was developed using AI.
 ### Prerequisites
 - Python 3.11+
 - ffmpeg (for video metadata and poster extraction)
-- Google Chrome (Playwright browser checks use it via `channel="chrome"`; or run `playwright install chromium`)
+- Google Chrome (Playwright browser checks use it via `channel="chrome"`; or run `playwright install chromium`) - for testing
 
 ### Setup
 ```bash
