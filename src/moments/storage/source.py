@@ -42,7 +42,6 @@ def scan_album(album_path: Path) -> list[dict[str, object]]:
     Skips:
     - Hidden files/folders (prefix .)
     - Symlinks
-    - Loose files at album root
 
     Returns list of dicts: {path: Path (relative), type: "image"|"video"}
     """
@@ -62,11 +61,6 @@ def scan_album(album_path: Path) -> list[dict[str, object]]:
 
             # Get relative path and extension.
             rel_path = entry.relative_to(album_path)
-
-            # Skip files at album root (depth 0).
-            if rel_path.parent == Path("."):
-                continue
-
             ext = entry.suffix.lower()
 
             if ext in _IMAGE_EXTS:

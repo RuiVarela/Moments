@@ -15,7 +15,7 @@ Self-hosted photo album that reads folder hierarchies, extracts metadata, and se
 ## Albums
 Each root-level folder under `source_dir` is one album. All subfolders nest within it (flattened into a single media list).
 
-**Ignored**: loose files at root, hidden files/folders (prefix `.`), symlinks.
+**Ignored**: loose files directly in `source_dir` (belong to no album), hidden files/folders (prefix `.`), symlinks. Files directly in an album folder are part of the album.
 
 ## Media
 **Image formats**: JPEG, PNG, WebP, HEIC, GIF (Assumption).

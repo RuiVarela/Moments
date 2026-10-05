@@ -52,9 +52,9 @@ export function navigate(route) {
   location.hash = route.toString();
 }
 
+// Update URL only; caller already shows the route (e.g. viewer next/prev).
 export function replace(route) {
   history.replaceState(null, "", route.toString());
-  notifySubscribers();
 }
 
 function notifySubscribers() {

@@ -18,7 +18,7 @@ src/moments/
 │   └── videos.py            # ffprobe (metadata), ffmpeg (poster extraction)
 │
 ├── storage/                 # Metadata persistence and scanning
-│   ├── source.py            # Walk album recursively; skip hidden, symlinks, root files
+│   ├── source.py            # Walk album recursively; skip hidden, symlinks
 │   └── data.py              # Index JSON (atomic write); file hashing; thumb/preview paths
 │
 ├── services/                # Business logic
@@ -94,13 +94,15 @@ Pydantic validates config against schema on load (see config.py for validators).
 **Ignored** in scan:
 - Hidden files/folders (prefix `.`).
 - Symlinks.
-- Loose files at album root (depth 0).
+- Loose files directly in `source_dir` (not inside any album).
+
+Files directly in an album folder are included (flat albums, `cover.jpg`).
 
 Example:
 ```
 source_dir/
 ├── vacation/              # Album: id="vacation"
-│   ├── cover.jpg         # File at root (ignored)
+│   ├── cover.jpg         # Album root file (included; used as cover)
 │   ├── 2024-01/          # Subfolder (flattened into vacation)
 │   │   ├── photo_001.jpg
 │   │   └── photo_002.jpg
@@ -168,6 +170,7 @@ Per-file errors logged and skipped; run continues. If all files fail, state = `f
 ### Images (drivers/images.py)
 - **EXIF parsing**: datetime, GPS (lat/lon from IFD), dimensions.
 - **Fallback date**: EXIF DateTimeOriginal → DateTime → mtime.
+- **Orientation**: EXIF orientation applied before resize (thumbs upright); width/height reported as displayed.
 - **Resize**: Pillow thumbnail to max_size (LANCZOS), save as JPEG.
 - **Error handling**: bad EXIF logged, still create thumbnails.
 
@@ -210,7 +213,7 @@ All file serving uses `FileResponse` (range support for video seeking).
 
 ### Storage Tests (tests/test_storage.py)
 - Album listing (skip hidden).
-- Scan rules (root files ignored, nested included).
+- Scan rules (album root + nested included; source_dir loose files ignored).
 - Index save/load.
 - Atomic write (tmp + rename).
 

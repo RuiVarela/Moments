@@ -1,27 +1,35 @@
-/* Bootstrap: initialize router and views. */
+/* Bootstrap: route changes → view render.
+
+   hashchange ─► router ─► render(route)
+                             ├─ abort previous view (polls, listeners)
+                             └─ view(app, route, { navigate, replace, signal })
+*/
 
 import { RoutePath } from "./constants.js";
-import { Route, subscribe, navigate } from "./router.js";
+import { clear } from "./dom.js";
+import { Route, subscribe, navigate, replace } from "./router.js";
 import { renderAlbums } from "./views/albums.js";
 import { renderAlbum } from "./views/album.js";
 import { renderViewer } from "./views/viewer.js";
 
 const app = document.getElementById("app");
 
+const VIEWS = Object.freeze({
+  [RoutePath.LANDING]: renderAlbums,
+  [RoutePath.ALBUM]: renderAlbum,
+  [RoutePath.VIEWER]: renderViewer,
+});
+
+let controller = null;
+
 function render(route) {
-  while (app.firstChild) app.removeChild(app.firstChild);
+  controller?.abort();
+  controller = new AbortController();
 
-  if (route.path === RoutePath.ALBUM) {
-    renderAlbum(app, route, navigate);
-    return;
-  }
+  clear(app);
 
-  if (route.path === RoutePath.VIEWER) {
-    renderViewer(app, route, navigate);
-    return;
-  }
-
-  renderAlbums(app, route, navigate);
+  const view = VIEWS[route.path] ?? renderAlbums;
+  view(app, route, { navigate, replace, signal: controller.signal });
 }
 
 subscribe(render);

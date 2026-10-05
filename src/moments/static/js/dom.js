@@ -18,7 +18,7 @@ export function h(tag, props = {}, ...children) {
     }
   }
 
-  for (const child of children.flat()) {
+  for (const child of children.flat(Infinity)) {
     if (child != null) {
       el.appendChild(
         typeof child === "string" ? document.createTextNode(child) : child
@@ -45,8 +45,14 @@ export function icon(name) {
     info: "ℹ",
     sort: "⇅",
     extract: "⟳",
+    photo: "◫",
   };
   return icons[name] || "?";
+}
+
+// "2024/trip/IMG_01.jpg" → "IMG_01.jpg"
+export function fileName(path) {
+  return path.split("/").pop();
 }
 
 export function duration(seconds) {

@@ -4,12 +4,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from PIL import Image
+from PIL import Image, ImageOps
 from PIL.ExifTags import GPSTAGS, TAGS
 
 from moments.types import MediaItemDict
 
 _logger = logging.getLogger(__name__)
+
+_ORIENTATION_TAG = 274
+
+# EXIF orientations that rotate 90°/270° → displayed width/height swap.
+_TRANSPOSED_ORIENTATIONS = {5, 6, 7, 8}
 
 
 def extract_exif(image_path: Path) -> dict[str, object]:
@@ -35,6 +40,10 @@ def extract_exif(image_path: Path) -> dict[str, object]:
             exif = img.getexif()
             if not exif:
                 return result
+
+            # Phone photos: pixels stored sideways + orientation tag; report displayed size.
+            if exif.get(_ORIENTATION_TAG) in _TRANSPOSED_ORIENTATIONS:
+                result["width"], result["height"] = img.height, img.width
 
             # Extract DateTimeOriginal (tag 36867).
             date_str = exif.get(36867) or exif.get(306)  # Fallback to DateTime.
@@ -104,9 +113,11 @@ def create_thumbnail(
     """Create thumbnail, return True on success."""
     try:
         with Image.open(src_path) as img:
-            img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+            # Rotate per EXIF orientation; output JPEG carries no tag, so pixels must be upright.
+            upright = ImageOps.exif_transpose(img)
+            upright.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
             thumb_path.parent.mkdir(parents=True, exist_ok=True)
-            img.save(thumb_path, "JPEG", quality=85)
+            upright.save(thumb_path, "JPEG", quality=85)
         return True
     except Exception as e:
         _logger.warning(f"Failed to create thumbnail {thumb_path}: {e}")

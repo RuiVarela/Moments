@@ -31,27 +31,30 @@ def test_scan_album(tmp_albums_dir: Path) -> None:
     assert all("photo_" in item["path"] for item in items)
 
 
-def test_scan_album_skips_root_files(tmp_albums_dir: Path) -> None:
-    """Test that root files are skipped."""
+def test_scan_album_includes_album_root_files(tmp_albums_dir: Path) -> None:
+    """Files directly in the album folder belong to the album (e.g. flat albums, cover.jpg)."""
     album_path = tmp_albums_dir / "album"
     album_path.mkdir()
 
-    # Root file (should be skipped).
     from PIL import Image
 
     img = Image.new("RGB", (100, 100))
-    root_img = album_path / "root.jpg"
-    img.save(str(root_img))
+    img.save(str(album_path / "root.jpg"))
 
-    # Nested file (should be included).
     subfolder = album_path / "sub"
     subfolder.mkdir()
-    nested_img = subfolder / "nested.jpg"
-    img.save(str(nested_img))
+    img.save(str(subfolder / "nested.jpg"))
 
-    items = source.scan_album(album_path)
-    assert len(items) == 1
-    assert "nested.jpg" in items[0]["path"]
+    paths = sorted(str(item["path"]) for item in source.scan_album(album_path))
+    assert paths == ["root.jpg", "sub/nested.jpg"]
+
+
+def test_list_albums_ignores_source_root_files(tmp_albums_dir: Path) -> None:
+    """Loose files in source_dir belong to no album."""
+    (tmp_albums_dir / "loose.jpg").write_bytes(b"")
+    (tmp_albums_dir / "album").mkdir()
+
+    assert source.list_albums(tmp_albums_dir) == ["album"]
 
 
 def test_media_hash_stable(tmp_albums_dir: Path) -> None:

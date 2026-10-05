@@ -1,43 +1,40 @@
-/* Landing page view: album grid. */
+/* Landing view: grid of all albums. */
 
-import { h, clear, icon } from "../dom.js";
+import { h } from "../dom.js";
 import { listAlbums } from "../api.js";
-import { Route } from "../router.js";
 import { RoutePath } from "../constants.js";
+import { Route } from "../router.js";
+import { albumCard } from "../components/album-card.js";
 
-export async function renderAlbums(app, route, navigate) {
-  clear(app);
-
-  const main = h("main", { className: "section albums" });
+export async function renderAlbums(app, route, { navigate, signal }) {
   const grid = h("div", { className: "albums-grid" });
+
+  app.appendChild(h("main", { className: "section albums" },
+    h("h1", { className: "page-title" }, "Albums"),
+    grid,
+  ));
 
   try {
     const albums = await listAlbums();
 
+    // Route changed while loading.
+    if (signal.aborted) {
+      return;
+    }
+
+    if (!albums.length) {
+      grid.appendChild(h("p", { className: "empty-state" }, "No albums. Add folders to the source directory."));
+      return;
+    }
+
     for (const album of albums) {
-      const card = h(
-        "div",
-        { className: "album-card", onClick: () => navigate(new Route(RoutePath.ALBUM, album.id)) },
-        h("div", { className: "album-cover" },
-          album.cover
-            ? h("img", { src: album.cover, alt: album.id })
-            : h("div", { className: "album-cover-placeholder" }, icon("extract"))
-        ),
-        h("div", { className: "album-info" },
-          h("div", { className: "album-name" }, album.id),
-          h("div", { className: "album-meta" }, `${album.count} items`),
-          album.status === "running" ? h("div", { className: "album-badge" }, "Extracting…") : null
-        )
-      );
-      grid.appendChild(card);
+      const onOpen = () => navigate(new Route(RoutePath.ALBUM, album.id));
+      grid.appendChild(albumCard({ album, onOpen }));
     }
   } catch (err) {
     grid.appendChild(h("div", { className: "error-inline" },
-      err.message,
-      h("button", { onClick: () => location.reload() }, "Retry")
+      h("span", {}, `Could not load albums: ${err.message}`),
+      h("button", { type: "button", onClick: () => location.reload() }, "Retry"),
     ));
   }
-
-  main.appendChild(grid);
-  app.appendChild(main);
 }

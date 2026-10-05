@@ -1,29 +1,52 @@
-/* Swipe detector: pointer events → left/right callbacks. */
+/* Swipe detector: horizontal pointer drag → callback.
+
+   finger ◄──── (dx < 0) → onSwipeLeft   (e.g. next)
+   finger ────► (dx > 0) → onSwipeRight  (e.g. prev)
+*/
 
 import { SWIPE_THRESHOLD_PX } from "../constants.js";
 
 export class SwipeDetector {
-  constructor(el, { onLeft = null, onRight = null } = {}) {
-    this.el = el;
-    this.onLeft = onLeft;
-    this.onRight = onRight;
-    this.#startX = 0;
-    this.#bind();
+  #startX = null;
+  #onSwipeLeft;
+  #onSwipeRight;
+
+  constructor(el, { onSwipeLeft, onSwipeRight }) {
+    this.#onSwipeLeft = onSwipeLeft;
+    this.#onSwipeRight = onSwipeRight;
+
+    el.addEventListener("pointerdown", (e) => this.#start(e));
+    el.addEventListener("pointerup", (e) => this.#end(e));
+    el.addEventListener("pointercancel", () => this.#reset());
   }
 
-  #startX;
+  #start(e) {
+    if (!e.isPrimary) {
+      return;
+    }
+    this.#startX = e.clientX;
+  }
 
-  #bind() {
-    this.el.addEventListener("pointerdown", (e) => {
-      this.#startX = e.clientX;
-    });
+  #end(e) {
+    if (this.#startX === null) {
+      return;
+    }
 
-    this.el.addEventListener("pointerup", (e) => {
-      const dx = e.clientX - this.#startX;
-      if (Math.abs(dx) > SWIPE_THRESHOLD_PX) {
-        if (dx > 0 && this.onLeft) this.onLeft();
-        else if (dx < 0 && this.onRight) this.onRight();
-      }
-    });
+    const dx = e.clientX - this.#startX;
+    this.#reset();
+
+    if (Math.abs(dx) < SWIPE_THRESHOLD_PX) {
+      return;
+    }
+
+    if (dx < 0) {
+      this.#onSwipeLeft();
+      return;
+    }
+    this.#onSwipeRight();
+  }
+
+  #reset() {
+    this.#startX = null;
   }
 }

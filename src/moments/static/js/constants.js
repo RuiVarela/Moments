@@ -34,6 +34,21 @@ export const MediaKind = Object.freeze({
   ORIGINAL: "original",
 });
 
+export const CachePolicy = Object.freeze({
+  USE: "use",
+  REFRESH: "refresh",
+});
+
+export const SORT_LABELS = Object.freeze({
+  [SortKey.DATE]: "Date taken",
+  [SortKey.MTIME]: "Modified",
+  [SortKey.NAME]: "Name",
+});
+
+export const OSM_URL = "https://www.openstreetmap.org/";
+export const OSM_ZOOM = 15;
+export const MS_PER_SECOND = 1000;
+
 export const POLL_INTERVAL_MS = 1000;
 export const PRELOAD_NEIGHBORS = 1;
 export const SWIPE_THRESHOLD_PX = 50;
