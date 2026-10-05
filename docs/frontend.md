@@ -24,6 +24,7 @@ src/moments/static/
 │   ├── poll.js                      # Poll helper (polling with cancellation)
 │   ├── prefs.js                     # localStorage: sort/order persistence
 │   ├── scroll.js                    # Per-route scroll memory (back/close restores position)
+│   ├── places.js                    # GPS → place name (Nominatim), cached + throttled
 │   ├── dates.js                     # groupByMonth(): month headers for date sort
 │   ├── dom.js                       # h() builder, icon helpers, duration()
 │   ├── components/
@@ -49,6 +50,7 @@ src/moments/static/
 - **API** (`api.js`): ONLY place that calls `fetch()`. Throws `ApiError` on 4xx/5xx.
 - **Router** (`router.js`): parse/build routes, notify subscribers on hash change.
 - **Prefs** (`prefs.js`): localStorage read/write (try/catch wrapped).
+- **Places** (`places.js`): coords → "City, Country" via OSM Nominatim (third-party, from browser). Cache per ~100 m; ≤1 request/s. Viewer calls it only while info panel is open.
 - **Scroll** (`scroll.js`): save section scroll on route leave; restore after view content renders (albums list, album grid).
 
 Components cannot call api.js directly; views orchestrate.
@@ -141,7 +143,7 @@ export async function renderViewer(app, route, navigate) { ... }
 - **Info overlay** (toggle via `i` key or button):
   - Date (EXIF/creation date, else from file name; "—" if none).
   - Dimensions (WxH).
-  - GPS: "🗺 [lat, lon]" as OSM link (no map lib).
+  - GPS: OSM link; label = place name ("Lisbon, Portugal") once resolved, else "lat, lon" (no map lib).
   - Video: duration.
 - **Pause video** when navigating to next/prev.
 
@@ -165,6 +167,7 @@ export async function getAlbum(id, sort, order)             // → {id, count, i
 export async function startExtract(id)                       // → {status: "started"}
 export async function getExtractStatus(id)                  // → {status, done, total, error}
 export function mediaUrl(albumId, hash, kind)               // → "/api/albums/.../media/.../thumb|preview|original"
+export async function reverseGeocode(lat, lon)              // → Nominatim address {city, town, country, ...}
 
 export class ApiError extends Error {
   constructor(message, status)

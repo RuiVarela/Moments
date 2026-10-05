@@ -19,6 +19,7 @@ import {
 } from "../constants.js";
 import { SwipeDetector } from "../components/swipe.js";
 import { mediaInfo } from "../components/media-info.js";
+import { placeName } from "../places.js";
 
 const Step = Object.freeze({
   PREV: -1,
@@ -116,8 +117,7 @@ class Viewer {
     this.#prevBtn.disabled = index === 0;
     this.#nextBtn.disabled = index === this.#items.length - 1;
 
-    clear(this.#info);
-    this.#info.appendChild(mediaInfo(item));
+    this.#renderInfo();
 
     this.#ctx.replace(new Route(RoutePath.VIEWER, this.#albumId, item.hash));
     this.#preload(index);
@@ -170,6 +170,27 @@ class Viewer {
 
   #toggleInfo() {
     this.#info.hidden = !this.#info.hidden;
+    this.#renderInfo();
+  }
+
+  // Coords first; place name swapped in when resolved. Lookup only while panel open (third-party call).
+  async #renderInfo() {
+    const item = this.#items[this.#index];
+    clear(this.#info);
+    this.#info.appendChild(mediaInfo(item));
+
+    if (this.#info.hidden || !item.gps) {
+      return;
+    }
+
+    const place = await placeName(item.gps);
+
+    // Navigated or closed meanwhile.
+    if (!place || this.#ctx.signal.aborted || this.#items[this.#index] !== item) {
+      return;
+    }
+    clear(this.#info);
+    this.#info.appendChild(mediaInfo(item, place));
   }
 
   #onKey(e) {

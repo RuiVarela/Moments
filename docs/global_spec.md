@@ -90,7 +90,7 @@ Three-page flow:
   - Images: original file (JPEG/PNG/WebP/GIF).
   - HEIC/HEIF: preview (800px, since browsers don't render HEIC).
   - Videos: original file; browser plays natively.
-- **Info overlay** (toggle via `i` key): show date, dimensions, GPS as OpenStreetMap link (no embedded map).
+- **Info overlay** (toggle via `i` key): show date, dimensions, GPS as OpenStreetMap link labelled with place name (browser → Nominatim reverse geocoding; no embedded map).
 
 No build step; vanilla JS + CSS Grid.
 

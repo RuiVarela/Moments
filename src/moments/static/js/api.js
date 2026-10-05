@@ -1,6 +1,6 @@
 /* API client: ONLY place that calls fetch. */
 
-import { SortKey, SortOrder } from "./constants.js";
+import { NOMINATIM_URL, NOMINATIM_ZOOM, SortKey, SortOrder } from "./constants.js";
 
 export class ApiError extends Error {
   constructor(message, status = null) {
@@ -47,4 +47,18 @@ export async function getExtractStatus(id) {
 
 export function mediaUrl(albumId, mediaHash, kind) {
   return `${albumPath(albumId)}/media/${encodeURIComponent(mediaHash)}/${kind}`;
+}
+
+// Third-party OSM Nominatim: coords → address ({ city, town, country, ... }).
+export async function reverseGeocode(lat, lon) {
+  const params = new URLSearchParams({
+    format: "jsonv2",
+    lat,
+    lon,
+    zoom: NOMINATIM_ZOOM,
+    "accept-language": navigator.language,
+  });
+  const resp = await _fetch(`${NOMINATIM_URL}?${params}`);
+  const body = await resp.json();
+  return body.address ?? {};
 }

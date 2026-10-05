@@ -45,6 +45,11 @@ export const SORT_LABELS = Object.freeze({
 
 export const OSM_URL = "https://www.openstreetmap.org/";
 export const OSM_ZOOM = 15;
+
+// Reverse geocoding (place names). Usage policy: max 1 request/s.
+export const NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse";
+export const NOMINATIM_ZOOM = 10; // City level.
+export const NOMINATIM_INTERVAL_MS = 1000;
 export const MS_PER_SECOND = 1000;
 
 export const POLL_INTERVAL_MS = 1000;
