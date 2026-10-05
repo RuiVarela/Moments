@@ -130,6 +130,7 @@ class Viewer {
         src: this.#url(item, MediaKind.ORIGINAL),
         poster: this.#url(item, MediaKind.PREVIEW),
         controls: true,
+        autoplay: true,
         playsinline: true,
         preload: "metadata",
       });

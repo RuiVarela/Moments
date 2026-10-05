@@ -130,7 +130,7 @@ export async function renderViewer(app, route, navigate) { ... }
 - Receive media list from album view state (passed via route or component state TODO).
 - Display current media:
   - **Image**: `<img src="/api/albums/{id}/media/{hash}/original">` (except HEIC → preview).
-  - **Video**: `<video controls playsinline poster="/api/albums/{id}/media/{hash}/preview">`.
+  - **Video**: `<video controls autoplay playsinline poster="/api/albums/{id}/media/{hash}/preview">`.
 - Navigation:
   - **Keyboard**: ← → (prev/next), Esc (close), i (toggle info).
   - **Swipe**: left (prev), right (next) via `SwipeDetector`.
