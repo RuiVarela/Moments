@@ -83,7 +83,11 @@ Three-page flow:
   - Swipe left/right (mobile).
   - Previous/Next buttons.
   - Close button (ESC key or X button).
-- **Info overlay** (toggle): show date, GPS map if present (optional).
+- **Media source**:
+  - Images: original file (JPEG/PNG/WebP/GIF).
+  - HEIC/HEIF: preview (800px, since browsers don't render HEIC).
+  - Videos: original file; browser plays natively.
+- **Info overlay** (toggle via `i` key): show date, dimensions, GPS as OpenStreetMap link (no embedded map).
 
 No build step; vanilla JS + CSS Grid.
 

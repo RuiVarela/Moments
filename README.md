@@ -30,7 +30,7 @@ cp config.example.json config.json
 # Start server (default port 8000).
 python -m moments
 
-# Visit http://localhost:8000
+# Visit http://localhost:8000 (UI) or http://localhost:8000/api/albums (API)
 ```
 
 ### Test
