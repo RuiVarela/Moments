@@ -1,22 +1,21 @@
-version: "3.8"
-
 services:
   moments:
+    image: ruifilipevarela/moments:latest
     build: .
     ports:
       - "8000:8000"
     volumes:
-      # Source albums folder (read-only).
-      - ${SOURCE_DIR:-.}:/source:ro
-      # Data folder for extracted metadata (persistent).
-      - moments_data:/app/data
-      # Config file.
-      - ./config.json:/app/config.json:ro
+      # Albums (read-only): each subfolder is an album.
+      - ${SOURCE_DIR:?set SOURCE_DIR to your albums folder}:/source:ro
+      # Extracted metadata, thumbnails, previews (persistent).
+      - moments_data:/data
+      # Optional: override defaults (port, sizes, num_threads).
+      # - ./config.json:/app/config.json:ro
     environment:
-      # Config file location (loaded from working dir).
-      MOMENTS_CONFIG: /app/config.json
+      # Host user/group that owns /data files.
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
     restart: unless-stopped
 
 volumes:
   moments_data:
-    driver: local

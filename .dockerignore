@@ -1,0 +1,19 @@
+# Keep build context small and private: only pyproject, README, src, docker/ are needed.
+.git
+.gitignore
+.claude
+venv
+.venv
+working_folder
+tests
+docs
+scripts
+config.json
+config.example.json
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.mypy_cache
+*.egg-info
+build
+dist

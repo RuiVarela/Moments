@@ -51,20 +51,32 @@ mypy --strict src tests
 
 ## Production
 
-### Docker
+### Docker run
 ```bash
-# Build image.
-docker compose build
+docker run -d --name moments -p 8000:8000 \
+  -v /path/to/albums:/source:ro \
+  -v moments_data:/data \
+  -e PUID=$(id -u) -e PGID=$(id -g) \
+  ruifilipevarela/moments:latest
+```
+Open http://localhost:8000. Images: `linux/amd64`, `linux/arm64`.
 
-# Run.
-docker compose up -d
-
-# Logs.
+### Docker Compose
+```bash
+SOURCE_DIR=/path/to/albums docker compose up -d
 docker compose logs -f
 ```
 
+### Container layout
+| Path / env | Purpose |
+|---|---|
+| `/source` | Albums; mount read-only (`:ro`). Each subfolder = album. |
+| `/data` | Index, thumbnails, previews. Volume or host dir. |
+| `/app/config.json` | Built-in defaults; mount your own to override. |
+| `PUID` / `PGID` | Host user/group owning `/data` files (default 1000). |
+
 ### Configuration
-Edit `config.json`:
+Defaults are baked into the image. To override, mount a `config.json` at `/app/config.json` (keep `source_dir: /source`, `data_dir: /data`):
 - `port`: HTTP server port (default 8000).
 - `source_dir`: Path to album folders (required; folders inside this directory are albums).
 - `data_dir`: Path for extracted metadata, thumbnails, previews.
@@ -77,15 +89,27 @@ Edit `config.json`:
 - **Read-only source**: source folder is mounted read-only.
 - **Path validation**: all file serving is validated to prevent path traversal.
 
-### Volume Mounts
-- `source_dir`: mount as read-only (`:ro`).
-- `data_dir`: mount as named volume for persistence.
-- `config.json`: mount into container.
-
 ### Troubleshooting
-- If videos don't show metadata: ffmpeg may not be in PATH inside container.
-- If HEIC images don't convert: pillow-heif plugin not loaded.
-- Check logs: `docker compose logs`.
+- `/data` permission errors: set `PUID`/`PGID` to the owner of the host data dir.
+- Check logs: `docker compose logs` / `docker logs moments`.
+
+## Publishing (Docker Hub)
+
+### 1. Push (multi-arch)
+```bash
+docker login
+docker buildx create --name moments-builder --use     # once
+VERSION=0.1.0
+docker buildx build --platform linux/amd64,linux/arm64 \
+  --build-arg VERSION=${VERSION} \
+  -t ruifilipevarela/moments:${VERSION} -t ruifilipevarela/moments:latest \
+  --push .
+```
+
+### 2 clean Verify
+```bash
+docker buildx imagetools inspect ruifilipevarela/moments:latest   # lists amd64 + arm64
+```
 
 ## Documentation
 - [docs/global_spec.md](docs/global_spec.md): Feature specification (user-facing).

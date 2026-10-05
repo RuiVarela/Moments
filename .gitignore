@@ -73,4 +73,6 @@ htmlcov/
 # pyenv
 # .python-version
 config.json
+# Image default config (container paths only, no secrets).
+!docker/config.json
 working_folder

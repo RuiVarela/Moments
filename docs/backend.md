@@ -299,45 +299,32 @@ _INDEX_VERSION = 1  # Bump if index schema changes.
 
 ## Deployment
 
-### Docker
+### Image (`Dockerfile`)
 
-**Dockerfile** (python-slim + ffmpeg):
-- Base: `python:3.11-slim`
-- System deps: ffmpeg (for video processing)
-- Install: pyproject.toml dependencies (fastapi, uvicorn, pillow, pillow-heif)
-- Copy: src/moments and pyproject.toml
-- Expose: port 8000
-- Entry: `python -m moments`
+```
+python:3.11-slim + ffmpeg
+  pip install .          (non-editable; code + static/ in site-packages)
+  /app/config.json       (docker/config.json: source_dir=/source, data_dir=/data)
+  ENTRYPOINT entrypoint.sh ─► chown /data (top-level) ─► setpriv PUID:PGID ─► python -m moments
+```
 
-**docker-compose.yml**:
-- Service: moments (builds from Dockerfile)
-- Volumes:
-  - `${SOURCE_DIR}:/source:ro` — albums folder, mounted read-only
-  - `moments_data:/app/data` — named volume for persistence (metadata, thumbnails)
-  - `./config.json:/app/config.json:ro` — config file, mounted read-only
-- Port mapping: `8000:8000` (configurable)
-- Restart policy: `unless-stopped`
+- **Packaging**: `pyproject.toml` uses `packages.find` + `package-data` (`static/**`, `py.typed`); `tests/test_packaging.py` builds the wheel and checks contents.
+- **User**: root only in entrypoint; app runs as `PUID:PGID` (default 1000) via `setpriv` (util-linux, already in slim).
+- **Healthcheck**: python `urllib` → `/api/albums` (no curl in slim).
+- **Volumes**: `/data` declared; `/source` expected read-only.
+- **Context**: `.dockerignore` excludes venv, .git, working_folder (photos), tests, docs.
+
+### Compose (`docker-compose.yml`)
+
+- `image: ruifilipevarela/moments:latest` + `build: .`
+- `${SOURCE_DIR}:/source:ro` (required; compose errors if unset), `moments_data:/data`
+- `PUID`/`PGID` env; optional `./config.json:/app/config.json:ro`
 
 ### Environment Variables
 
-- `MOMENTS_CONFIG`: path to config file (default: `config.json` in working dir)
-- `SOURCE_DIR`: passed to docker-compose (defaults to current dir `.`)
-
-### Running
-
-```bash
-# Build image
-docker compose build
-
-# Start service
-docker compose up -d
-
-# View logs
-docker compose logs -f
-
-# Stop
-docker compose down
-```
+- `MOMENTS_CONFIG`: config path (image: `/app/config.json`; dev: `config.json` in cwd).
+- `PUID` / `PGID`: owner of files written to `/data`.
+- `SOURCE_DIR`: compose only; host albums folder.
 
 ## Security
 

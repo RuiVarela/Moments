@@ -1,0 +1,7 @@
+{
+  "port": 8000,
+  "source_dir": "/source",
+  "data_dir": "/data",
+  "thumb_size": 200,
+  "preview_size": 800
+}

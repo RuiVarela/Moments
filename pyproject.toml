@@ -27,8 +27,15 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["moments"]
 package-dir = {"" = "src"}
+
+# All subpackages (routes, services, storage, drivers), not just top-level.
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# Frontend + typing marker ship inside the package (Docker installs non-editable).
+[tool.setuptools.package-data]
+moments = ["static/**/*", "py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
