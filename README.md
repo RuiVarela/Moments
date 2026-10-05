@@ -99,7 +99,7 @@ Defaults are baked into the image. To override, mount a `config.json` at `/app/c
 ```bash
 docker login
 docker buildx create --name moments-builder --use     # once
-VERSION=0.1.0
+VERSION=1.0.1
 docker buildx build --platform linux/amd64,linux/arm64 \
   --build-arg VERSION=${VERSION} \
   -t ruifilipevarela/moments:${VERSION} -t ruifilipevarela/moments:latest \
