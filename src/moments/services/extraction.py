@@ -1,12 +1,13 @@
 """Extraction job manager: per-album background jobs."""
 import logging
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from threading import Lock
 from typing import Optional
 
 from moments.config import Config
 from moments.drivers import filenames, images, videos
+from moments.drivers.images import Rendition
 from moments.storage import data, source
 from moments.types import ExtractionStatus, MediaItemDict
 
@@ -121,74 +122,31 @@ class ExtractionManager:
                 job.status = ExtractionStatus.IDLE
                 return
 
-            # Process each file.
+            # Fan files out to num_threads workers (Pillow/ffmpeg release the GIL).
+            #   scanned ─► [worker 1..N] ─► as_completed ─► done++ ─► index
             items: list[MediaItemDict] = []
 
-            for file_info in scanned:
-                rel_path_str: str = file_info["path"]
-                item_type: str = file_info["type"]
-                rel_path = Path(rel_path_str)
-                item_hash = data.media_hash(rel_path)
-                full_path = album_path / rel_path
-                stat = full_path.stat()
-
-                # Extract metadata and create thumbnails.
-                item: MediaItemDict = {
-                    "hash": item_hash,
-                    "path": str(rel_path),
-                    "type": item_type,
-                    "size": stat.st_size,
-                    "date": None,
-                    "gps": None,
-                    "width": None,
-                    "height": None,
-                    "duration": None,
-                    "codec": None,
+            with ThreadPoolExecutor(
+                max_workers=self._config.num_threads,
+                thread_name_prefix=f"extract-{album_id}",
+            ) as pool:
+                futures = {
+                    pool.submit(self._process_file, album_id, album_path, info): info
+                    for info in scanned
                 }
 
-                if item_type == "image":
-                    exif = images.extract_exif(full_path)
-                    item.update(exif)
-                    images.create_thumbnail(
-                        full_path,
-                        data.thumb_path(
-                            self._config.data_dir, album_id, item_hash
-                        ),
-                        self._config.thumb_size,
-                    )
-                    images.create_thumbnail(
-                        full_path,
-                        data.preview_path(
-                            self._config.data_dir, album_id, item_hash
-                        ),
-                        self._config.preview_size,
-                    )
-                elif item_type == "video":
-                    info = videos.extract_video_info(full_path)
-                    item.update(info)
-                    videos.create_poster(
-                        full_path,
-                        data.thumb_path(
-                            self._config.data_dir, album_id, item_hash
-                        ),
-                        self._config.thumb_size,
-                    )
-                    videos.create_poster(
-                        full_path,
-                        data.preview_path(
-                            self._config.data_dir, album_id, item_hash
-                        ),
-                        self._config.preview_size,
-                    )
+                # Progress counted here (single thread) → no race on job.done.
+                for future in as_completed(futures):
+                    job.done += 1
+                    try:
+                        items.append(future.result())
+                    except Exception:
+                        # Bad file: log, skip, keep going (spec).
+                        _logger.exception(f"Skipping {album_id}/{futures[future]['path']}")
 
-                # No capture date in metadata → try name, e.g. "2006-03-03_00001.jpg".
-                if item.get("date") is None:
-                    item["date"] = filenames.date_from_name(rel_path.name)
+            # Completion order is random; keep index stable.
+            items.sort(key=lambda item: item["path"])
 
-                items.append(item)
-                job.done += 1
-
-            # Save index.
             self._save_index(album_id, items)
             job.status = ExtractionStatus.IDLE
 
@@ -196,6 +154,55 @@ class ExtractionManager:
             _logger.exception(f"Extraction failed for {album_id}")
             job.error = str(e)
             job.status = ExtractionStatus.FAILED
+
+    def _process_file(
+        self, album_id: str, album_path: Path, file_info: dict[str, object]
+    ) -> MediaItemDict:
+        """Metadata + thumb/preview for one file (runs on a worker thread)."""
+        rel_path = Path(str(file_info["path"]))
+        item_type = str(file_info["type"])
+        item_hash = data.media_hash(rel_path)
+        full_path = album_path / rel_path
+
+        item: MediaItemDict = {
+            "hash": item_hash,
+            "path": str(rel_path),
+            "type": item_type,
+            "size": full_path.stat().st_size,
+            "date": None,
+            "gps": None,
+            "width": None,
+            "height": None,
+            "duration": None,
+            "codec": None,
+        }
+
+        thumb = Rendition(
+            data.thumb_path(self._config.data_dir, album_id, item_hash),
+            self._config.thumb_size,
+        )
+        preview = Rendition(
+            data.preview_path(self._config.data_dir, album_id, item_hash),
+            self._config.preview_size,
+        )
+
+        if item_type == "image":
+            item.update(images.extract_exif(full_path))
+
+            # One decode → preview + thumb.
+            images.create_renditions(full_path, [preview, thumb])
+        elif item_type == "video":
+            item.update(videos.extract_video_info(full_path))
+
+            # One ffmpeg run → preview poster; thumb resized from it.
+            if videos.create_poster(full_path, preview.path, preview.max_size):
+                images.create_renditions(preview.path, [thumb])
+
+        # No capture date in metadata → try name, e.g. "2006-03-03_00001.jpg".
+        if item.get("date") is None:
+            item["date"] = filenames.date_from_name(rel_path.name)
+
+        return item
 
     def _save_index(self, album_id: str, items: list[MediaItemDict]) -> bool:
         """Save index file."""

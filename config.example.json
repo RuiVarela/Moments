@@ -3,5 +3,6 @@
   "source_dir": "/source",
   "data_dir": "/app/data",
   "thumb_size": 200,
-  "preview_size": 800
+  "preview_size": 800,
+  "num_threads": 4
 }

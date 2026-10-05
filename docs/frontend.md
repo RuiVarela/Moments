@@ -7,6 +7,9 @@ Vanilla JavaScript (no build step, no framework). ES modules, CSS Grid, responsi
 ```
 src/moments/static/
 ├── index.html                       # Shell: <div id="app">, load /js/main.js
+├── favicon.svg                      # Source icon (sunset + mountains); edit this one
+├── favicon.ico                      # 16/32/48 PNGs rendered from favicon.svg
+├── apple-touch-icon.png             # 180px, rendered from favicon.svg
 ├── css/
 │   ├── tokens.css                   # Design tokens (CSS vars, light/dark)
 │   ├── base.css                     # Reset, inputs, common styles

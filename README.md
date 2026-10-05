@@ -70,6 +70,7 @@ Edit `config.json`:
 - `data_dir`: Path for extracted metadata, thumbnails, previews.
 - `thumb_size`: Thumbnail max dimension in pixels (default 200).
 - `preview_size`: Preview max dimension in pixels (default 800).
+- `num_threads`: Files extracted in parallel (default: number of CPU cores).
 
 ### Security
 - **No authentication**: app is for trusted networks only.

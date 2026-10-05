@@ -1,8 +1,9 @@
 """Image processing: EXIF, GPS, resize."""
 import logging
 from datetime import datetime
+from math import ceil
 from pathlib import Path
-from typing import Optional
+from typing import NamedTuple, Optional
 
 from PIL import Image, ImageOps
 from PIL.ExifTags import GPSTAGS, TAGS
@@ -12,6 +13,7 @@ from moments.types import MediaItemDict
 _logger = logging.getLogger(__name__)
 
 _ORIENTATION_TAG = 274
+_JPEG_QUALITY = 85
 
 # EXIF orientations that rotate 90°/270° → displayed width/height swap.
 _TRANSPOSED_ORIENTATIONS = {5, 6, 7, 8}
@@ -107,18 +109,54 @@ def _dms_to_decimal(dms: object) -> Optional[float]:
         return None
 
 
-def create_thumbnail(
-    src_path: Path, thumb_path: Path, max_size: int
-) -> bool:
-    """Create thumbnail, return True on success."""
+class Rendition(NamedTuple):
+    """Output JPEG + max length (px) of its longest side."""
+
+    path: Path
+    max_size: int
+
+
+def create_renditions(src_path: Path, renditions: list[Rendition]) -> bool:
+    """Decode source once; write every rendition, each resized from the previous.
+
+    4000x3000 JPEG ─draft─► 1000x750 ─resize─► 800 ─rotate─► preview.jpg
+                                                └─resize─► 200 ─► thumb.jpg
+    """
+    if not renditions:
+        return True
+
+    largest_first = sorted(renditions, key=lambda r: r.max_size, reverse=True)
+
     try:
         with Image.open(src_path) as img:
-            # Rotate per EXIF orientation; output JPEG carries no tag, so pixels must be upright.
-            upright = ImageOps.exif_transpose(img)
-            upright.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
-            thumb_path.parent.mkdir(parents=True, exist_ok=True)
-            upright.save(thumb_path, "JPEG", quality=85)
+            _draft(img, largest_first[0].max_size)
+
+            # Rotate after shrinking: far fewer pixels. Output JPEG has no orientation tag.
+            img.thumbnail(_box(largest_first[0].max_size), Image.Resampling.LANCZOS)
+            current = ImageOps.exif_transpose(img)
+
+            for rendition in largest_first:
+                current.thumbnail(_box(rendition.max_size), Image.Resampling.LANCZOS)
+                rendition.path.parent.mkdir(parents=True, exist_ok=True)
+                current.save(rendition.path, "JPEG", quality=_JPEG_QUALITY)
+
         return True
     except Exception as e:
-        _logger.warning(f"Failed to create thumbnail {thumb_path}: {e}")
+        _logger.warning(f"Failed to create renditions for {src_path}: {e}")
         return False
+
+
+def _draft(img: Image.Image, max_size: int) -> None:
+    """JPEG only: decode at 1/2, 1/4 or 1/8 scale, still >= target. No-op otherwise.
+
+    Example: 4000x3000 → 800 target → decodes 1000x750 instead of 12 MP.
+    """
+    scale = max_size / max(img.size)
+    if scale >= 1:
+        return
+
+    img.draft(None, (ceil(img.width * scale), ceil(img.height * scale)))
+
+
+def _box(max_size: int) -> tuple[int, int]:
+    return (max_size, max_size)

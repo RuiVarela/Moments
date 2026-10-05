@@ -16,6 +16,10 @@ class Config(BaseModel):
     data_dir: Path = Field(description="Path for extracted metadata")
     thumb_size: int = Field(default=200, description="Thumbnail max dimension (px)")
     preview_size: int = Field(default=800, description="Preview max dimension (px)")
+    num_threads: int = Field(
+        default_factory=lambda: os.cpu_count() or 1,
+        description="Files extracted in parallel (default: CPU cores)",
+    )
 
     @field_validator("source_dir", "data_dir", mode="before")
     @classmethod
@@ -43,6 +47,14 @@ class Config(BaseModel):
         """Sizes must be positive."""
         if v <= 0:
             raise ValueError(f"Size must be positive, got {v}")
+        return v
+
+    @field_validator("num_threads")
+    @classmethod
+    def positive_threads(cls, v: int) -> int:
+        """At least one worker, or nothing is ever extracted."""
+        if v < 1:
+            raise ValueError(f"num_threads must be >= 1, got {v}")
         return v
 
 

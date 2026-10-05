@@ -64,6 +64,7 @@ Loads from `config.json` file (or `$MOMENTS_CONFIG` env var). Validates at start
 **Optional**:
 - `thumb_size` (int): thumbnail max dimension in pixels (default 200).
 - `preview_size` (int): preview max dimension in pixels (default 800).
+- `num_threads` (int): files extracted in parallel (default: CPU cores; must be ≥ 1).
 
 ### Example
 
@@ -73,7 +74,8 @@ Loads from `config.json` file (or `$MOMENTS_CONFIG` env var). Validates at start
   "source_dir": "/mnt/albums",
   "data_dir": "/app/data",
   "thumb_size": 200,
-  "preview_size": 800
+  "preview_size": 800,
+  "num_threads": 4
 }
 ```
 
@@ -118,9 +120,18 @@ source_dir/
 
 ### Flow
 1. **Scan** (source.py): walk album, collect files by type (image/video).
-2. **Extract metadata**: EXIF date/GPS, video duration/codec/creation date.
-3. **Create thumbnails**: resize to thumb_size and preview_size.
-4. **Save index**: atomic write (tmp + rename).
+2. **Per file, in parallel** (`_process_file`, `num_threads` workers):
+   metadata (EXIF / ffprobe, filename date fallback) + thumb/preview.
+3. **Save index**: items sorted by path; atomic write (tmp + rename).
+
+```
+scan ─► files ─┬─► worker 1 ─┐
+               ├─► worker 2 ─┼─► as_completed ─► done++ ─► sort ─► index.json
+               └─► worker N ─┘   (job thread only)
+```
+
+Threads, not processes: Pillow decode/resize and ffmpeg release the GIL.
+Measured: 889-file album 54.3 s (1 thread) → 8.2 s (10 threads, 8 perf cores).
 
 ### States
 - `idle`: Not running, index exists or not started.
@@ -131,10 +142,10 @@ source_dir/
 - **On album entry**: `GET /api/albums/{id}` starts extraction if no index and not running.
 - **Manual**: `POST /api/albums/{id}/extract` (re-extract button).
 
-Extraction runs in background (thread pool, single worker); does not block API.
+Extraction runs in background: one album at a time (manager executor, single worker), files within it on `num_threads` workers; does not block API.
 
 ### Error Handling
-Per-file errors logged and skipped; run continues. If all files fail, state = `failed`.
+Per-file errors logged and skipped; run continues and still counts toward `done`. State = `failed` only on album-level errors (folder missing, scan/index failure).
 
 ## Index Format (data.py)
 
@@ -169,13 +180,21 @@ Per-file errors logged and skipped; run continues. If all files fail, state = `f
 ### Images (drivers/images.py)
 - **EXIF parsing**: datetime, GPS (lat/lon from IFD), dimensions.
 - **Fallback date**: EXIF DateTimeOriginal → DateTime → file name `YYYY-MM-DD_*.ext` (drivers/filenames.py) → none.
-- **Orientation**: EXIF orientation applied before resize (thumbs upright); width/height reported as displayed.
-- **Resize**: Pillow thumbnail to max_size (LANCZOS), save as JPEG.
+- **Renditions** (`create_renditions`): one decode → preview + thumb.
+  ```
+  4000x3000 JPEG ─draft─► 1000x750 ─resize─► 800 ─rotate─► preview.jpg
+                                              └─resize─► 200 ─► thumb.jpg
+  ```
+  - `draft()`: JPEG decoded at 1/2–1/8 scale, still ≥ target (biggest win).
+  - Largest first; each smaller size resized from the previous.
+  - EXIF orientation applied after first resize (fewer pixels); outputs upright.
+  - ~2.4× faster than decoding per size (57 → 24 ms/photo, 3.7 MP avg).
+- **Dimensions**: width/height reported as displayed (orientation-aware).
 - **Error handling**: bad EXIF logged, still create thumbnails.
 
 ### Videos (drivers/videos.py)
 - **ffprobe**: extract creation_time, duration, codec, width/height.
-- **Poster**: ffmpeg "select keyframe" or fallback to 1-second frame.
+- **Poster**: ffmpeg "select keyframe" or fallback to 1-second frame. Run once at preview size; thumb resized from it via `create_renditions`.
 - **Skip if ffmpeg missing**: logs debug message, returns empty metadata.
 - **Error tolerance**: failed ffmpeg → no poster, but video still indexed.
 

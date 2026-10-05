@@ -150,3 +150,33 @@ def test_config_direct_construction(tmp_path: Path) -> None:
         data_dir=data_dir,
     )
     assert cfg.port == 7000
+
+
+def _write_config(tmp_path: Path, **extra: object) -> Path:
+    source_dir = tmp_path / "source"
+    source_dir.mkdir(exist_ok=True)
+    config_file = tmp_path / "config.json"
+    config_file.write_text(json.dumps({
+        "source_dir": str(source_dir),
+        "data_dir": str(tmp_path / "data"),
+        **extra,
+    }))
+    return config_file
+
+
+def test_num_threads_defaults_to_cpu_count(tmp_path: Path) -> None:
+    """Omitted → one thread per CPU core."""
+    cfg = load_config(_write_config(tmp_path))
+    assert cfg.num_threads == (os.cpu_count() or 1)
+
+
+def test_num_threads_explicit(tmp_path: Path) -> None:
+    """Explicit value honored."""
+    cfg = load_config(_write_config(tmp_path, num_threads=3))
+    assert cfg.num_threads == 3
+
+
+def test_num_threads_must_be_positive(tmp_path: Path) -> None:
+    """0 threads would never extract anything."""
+    with pytest.raises(ValueError, match="num_threads"):
+        load_config(_write_config(tmp_path, num_threads=0))

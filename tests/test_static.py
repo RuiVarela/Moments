@@ -169,3 +169,19 @@ def test_original_rejects_unsatisfiable_range(original_url: tuple[TestClient, st
     response = client.get(url, headers={"Range": f"bytes={size + 10}-"})
 
     assert response.status_code == _HTTP_RANGE_NOT_SATISFIABLE
+
+
+@pytest.mark.parametrize(
+    ("path", "content_type"),
+    [
+        ("/favicon.svg", "image/svg+xml"),
+        ("/favicon.ico", "image/"),
+        ("/apple-touch-icon.png", "image/png"),
+    ],
+)
+def test_icons_served(client: TestClient, path: str, content_type: str) -> None:
+    """Favicons exist (browsers request /favicon.ico even without a link tag)."""
+    response = client.get(path)
+
+    assert response.status_code == 200
+    assert content_type in response.headers["content-type"]
