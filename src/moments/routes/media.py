@@ -1,4 +1,5 @@
 """Media file serving (original, thumb, preview)."""
+import mimetypes
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
@@ -7,6 +8,14 @@ from fastapi.responses import FileResponse
 from moments.storage import data
 
 router = APIRouter(prefix="/api/albums/{album_id}/media/{media_hash}", tags=["media"])
+
+_FALLBACK_MIME_TYPE = "application/octet-stream"
+
+
+def _guess_mime_type(file_path: Path) -> str:
+    """Guess MIME type, with fallback."""
+    mime_type, _ = mimetypes.guess_type(str(file_path))
+    return mime_type or _FALLBACK_MIME_TYPE
 
 
 @router.get("/original")
@@ -42,12 +51,8 @@ def get_original(
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
 
-    return FileResponse(
-        file_path,
-        media_type="image/jpeg"
-        if item["type"] == "image"
-        else "video/mp4",
-    )
+    mime_type = _guess_mime_type(file_path)
+    return FileResponse(file_path, media_type=mime_type)
 
 
 @router.get("/thumb")

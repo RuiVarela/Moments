@@ -1,10 +1,14 @@
 """FastAPI application factory."""
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from moments.config import Config
 from moments.routes import albums, extract, media
 from moments.services.extraction import ExtractionManager
+
+_STATIC_DIR = Path(__file__).parent / "static"
 
 
 def create_app(config: Config) -> FastAPI:
@@ -20,13 +24,8 @@ def create_app(config: Config) -> FastAPI:
     app.include_router(media.router)
     app.include_router(extract.router)
 
-    # Mount static frontend if it exists.
-    static_path = (
-        config.source_dir.parent / "static"
-        if hasattr(config, "source_dir")
-        else None
-    )
-    if static_path and static_path.exists():
-        app.mount("/", StaticFiles(directory=str(static_path), html=True))
+    # Mount static frontend (after API routes so /api/* takes priority).
+    if _STATIC_DIR.exists():
+        app.mount("/", StaticFiles(directory=str(_STATIC_DIR), html=True))
 
     return app
