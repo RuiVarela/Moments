@@ -1,10 +1,14 @@
 """Tests for media drivers."""
+import shutil
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
-from moments.drivers import images
+from moments.drivers import images, videos
 from moments.drivers.images import Rendition
+
+from tests.conftest import create_test_video
 
 _ORIENTATION_TAG = 274
 _ROTATE_90_CW = 6
@@ -108,3 +112,16 @@ def test_exif_gps_south_is_negative(tmp_path: Path) -> None:
     assert isinstance(gps, dict)
     assert gps["lat"] < 0
     assert gps["lon"] > 0
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg not installed")
+def test_poster_overwrites_existing(tmp_path: Path) -> None:
+    """Re-extract: stale poster exists → replaced, not ffmpeg "Overwrite? [y/N]" prompt (hang)."""
+    assert create_test_video(tmp_path, "album")
+    poster = tmp_path / "poster.jpg"
+    poster.write_bytes(b"stale")
+
+    assert videos.create_poster(tmp_path / "album" / "test_video.mp4", poster)
+
+    width, height = _size(poster)  # Raises if still the stale bytes.
+    assert width * 3 == height * 4

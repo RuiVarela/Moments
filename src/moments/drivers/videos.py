@@ -118,6 +118,7 @@ def create_poster(
         subprocess.run(
             [
                 "ffmpeg",
+                "-y",  # Overwrite stale poster; else prompt blocks.
                 "-v",
                 "quiet",
                 "-i",
@@ -137,6 +138,7 @@ def create_poster(
             subprocess.run(
                 [
                     "ffmpeg",
+                    "-y",
                     "-v",
                     "quiet",
                     "-ss",
