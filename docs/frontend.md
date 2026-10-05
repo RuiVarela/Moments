@@ -25,6 +25,7 @@ src/moments/static/
 │   ├── prefs.js                     # localStorage: sort/order persistence
 │   ├── scroll.js                    # Per-route scroll memory (back/close restores position)
 │   ├── places.js                    # GPS → place name (Nominatim), cached + throttled
+│   ├── rescan.js                    # Re-extract all albums sequentially (survives view changes)
 │   ├── dates.js                     # groupByMonth(): month headers for date sort
 │   ├── dom.js                       # h() builder, icon helpers, duration()
 │   ├── components/
@@ -50,6 +51,7 @@ src/moments/static/
 - **API** (`api.js`): ONLY place that calls `fetch()`. Throws `ApiError` on 4xx/5xx.
 - **Router** (`router.js`): parse/build routes, notify subscribers on hash change.
 - **Prefs** (`prefs.js`): localStorage read/write (try/catch wrapped).
+- **Rescan** (`rescan.js`): re-extract every album one after the other (start → poll until done → next). Module state, so it keeps running across navigation; views subscribe for progress. A failed album is recorded and skipped.
 - **Places** (`places.js`): coords → "City, Country" via OSM Nominatim (third-party, from browser). Cache per ~100 m; ≤1 request/s. Viewer calls it only while info panel is open.
 - **Scroll** (`scroll.js`): save section scroll on route leave; restore after view content renders (albums list, album grid).
 
@@ -124,6 +126,7 @@ export async function renderAlbum(app, route, navigate) { ... }
   - Title: album ID.
   - Sort picker: dropdown (date/name) + order toggle (↑/↓), save to prefs.
   - Options button → menu: "Re-extract" (POST, then poll status), current status text.
+  - "Re-extract all albums": banner shows `Re-extracting album 3 / 40 · name: done / total`; this album's turn → normal progress + grid reload; failures listed with retry.
 
 ### Viewer (`views/viewer.js`)
 

@@ -1,6 +1,6 @@
 /* Status banner: extraction progress or error with retry.
 
-   Returns { el, showProgress(done, total), showError(msg, onRetry), hide() }.
+   Returns { el, showProgress(done, total, label), showError(msg, onRetry), hide() }.
 */
 
 import { h, clear } from "../dom.js";
@@ -23,8 +23,8 @@ export function statusBanner() {
   return {
     el,
 
-    showProgress(done, total) {
-      const text = total ? `Extracting… ${done} / ${total}` : "Extracting…";
+    showProgress(done, total, label = "Extracting…") {
+      const text = total ? `${label} ${done} / ${total}` : label;
       const bar = h("progress", { max: total || 1, value: done });
       show(BannerKind.PROGRESS, h("span", {}, text), bar);
     },

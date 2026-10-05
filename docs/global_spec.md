@@ -77,7 +77,7 @@ Three-page flow:
 **2. Album view**: full-size grid of media (images + videos) with lazy-loaded thumbnails.
 - **Sorting**: dropdown to choose date taken or filename (default: date taken) + asc/desc toggle.
 - **By date**: grid split by month with a month/year header (e.g. "March 2006"); undated items last under "Undated".
-- **Options button** (top-right): re-extract album, show extraction status.
+- **Options button** (top-right): re-extract album, re-extract all albums (one after the other), show extraction status.
 - Auto-starts extraction if not yet done (user sees status in options).
 
 **3. Gallery/viewer**: single full-screen media display (image or video player).

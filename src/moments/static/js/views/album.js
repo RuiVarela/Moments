@@ -11,6 +11,7 @@ import { h, clear, icon } from "../dom.js";
 import { getExtractStatus, startExtract, mediaUrl } from "../api.js";
 import { loadAlbum } from "../album-store.js";
 import { poll } from "../poll.js";
+import { rescanAll, rescanState, onRescan } from "../rescan.js";
 import { getSort, getOrder, setSort, setOrder } from "../prefs.js";
 import { Route } from "../router.js";
 import { CachePolicy, MediaKind, POLL_INTERVAL_MS, RoutePath, SortKey, Status } from "../constants.js";
@@ -42,8 +43,17 @@ class AlbumView {
     this.#ctx = ctx;
     this.#options = optionsMenu({
       signal: ctx.signal,
-      actions: [{ label: "Re-extract album", onSelect: () => this.#reextract() }],
+      actions: [
+        { label: "Re-extract album", onSelect: () => this.#reextract() },
+        { label: "Re-extract all albums", onSelect: () => this.#rescanAll() },
+      ],
     });
+
+    // All-albums run may already be going (started from another album).
+    onRescan((state) => this.#showRescan(state), ctx.signal);
+    if (rescanState()?.running) {
+      this.#showRescan(rescanState());
+    }
   }
 
   mount(app) {
@@ -164,6 +174,40 @@ class AlbumView {
     } catch (err) {
       this.#banner.showError(`Could not start extraction: ${err.message}`, () => this.#reextract());
     }
+  }
+
+  async #rescanAll() {
+    try {
+      await rescanAll();
+    } catch (err) {
+      this.#banner.showError(`Could not list albums: ${err.message}`, () => this.#rescanAll());
+    }
+  }
+
+  // This album's turn → normal watch (grid reloads). Others → "Album 3 / 40 · trip: 12 / 300".
+  #showRescan(state) {
+    if (!state.running) {
+      this.#rescanDone(state);
+      return;
+    }
+
+    if (state.albumId === this.#albumId) {
+      this.#watch();
+      return;
+    }
+
+    const label = `Re-extracting album ${state.index + 1} / ${state.count} · ${state.albumId ?? ""}:`;
+    this.#banner.showProgress(state.done, state.total, label);
+  }
+
+  #rescanDone({ count, failed }) {
+    this.#options.setStatus(`Re-extracted ${count} albums, ${failed.length} failed`);
+
+    if (!failed.length) {
+      this.#banner.hide();
+      return;
+    }
+    this.#banner.showError(`Re-extract failed: ${failed.join(", ")}`, () => this.#rescanAll());
   }
 
   #resort(sort, order) {
