@@ -1,6 +1,6 @@
 /* Constants and enums. */
 
-export const Route = Object.freeze({
+export const RoutePath = Object.freeze({
   LANDING: "",
   ALBUM: "a",
   VIEWER: "m",

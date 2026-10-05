@@ -3,6 +3,7 @@
 import { h, clear, icon } from "../dom.js";
 import { listAlbums } from "../api.js";
 import { Route } from "../router.js";
+import { RoutePath } from "../constants.js";
 
 export async function renderAlbums(app, route, navigate) {
   clear(app);
@@ -16,7 +17,7 @@ export async function renderAlbums(app, route, navigate) {
     for (const album of albums) {
       const card = h(
         "div",
-        { className: "album-card", onClick: () => navigate(new Route("a", album.id)) },
+        { className: "album-card", onClick: () => navigate(new Route(RoutePath.ALBUM, album.id)) },
         h("div", { className: "album-cover" },
           album.cover
             ? h("img", { src: album.cover, alt: album.id })

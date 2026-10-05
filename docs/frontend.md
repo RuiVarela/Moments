@@ -193,7 +193,7 @@ export function duration(seconds)           // → "1:23" | "0:45"
 Frozen enums:
 
 ```js
-Route.LANDING, Route.ALBUM, Route.VIEWER        // path values
+RoutePath.LANDING, RoutePath.ALBUM, RoutePath.VIEWER  // path values
 SortKey.DATE, SortKey.MTIME, SortKey.NAME       // sort options
 SortOrder.ASC, SortOrder.DESC                   // order direction
 Status.IDLE, Status.RUNNING, Status.FAILED      // extraction states
@@ -268,7 +268,11 @@ export async function poll(fn, until, intervalMs, signal)
 - **No polling during idle**: stop `poll()` once extraction complete.
 - **LocalStorage for prefs**: no unnecessary fetches on reload.
 
-## Testing (manual for now)
+## Testing
+
+`tests/test_frontend.py` (pytest, skipped without Node): `node --check` on every module; `Route.parse()`/`toString()` with stubbed browser globals.
+
+### Manual
 
 1. Landing page loads; albums grid renders.
 2. Click album → album view loads, shows toolbar (sort picker, options button).

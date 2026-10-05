@@ -1,6 +1,6 @@
 /* Hash-based router with subscribers. */
 
-import { Route } from "./constants.js";
+import { RoutePath } from "./constants.js";
 
 export class Route {
   constructor(path, albumId = null, mediaHash = null) {
@@ -9,29 +9,34 @@ export class Route {
     this.mediaHash = mediaHash;
   }
 
+  // "#/a/<album>/m/<hash>" → ["a", album, "m", hash]
   static parse() {
-    const hash = (location.hash.slice(1) || "").split("/");
-    if (!hash[0]) return new Route("");
+    const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
 
-    if (hash[0] === "a" && hash[1]) {
-      const albumId = decodeURIComponent(hash[1]);
-      const mediaHash = hash[2]?.slice(1) ? decodeURIComponent(hash[3]) : null;
-      if (hash[2] === "m" && mediaHash) {
-        return new Route("m", albumId, mediaHash);
-      }
-      return new Route("a", albumId);
+    if (parts[0] !== RoutePath.ALBUM || !parts[1]) {
+      return new Route(RoutePath.LANDING);
     }
 
-    return new Route("");
+    const albumId = decodeURIComponent(parts[1]);
+
+    if (parts[2] === RoutePath.VIEWER && parts[3]) {
+      return new Route(RoutePath.VIEWER, albumId, decodeURIComponent(parts[3]));
+    }
+
+    return new Route(RoutePath.ALBUM, albumId);
   }
 
   toString() {
-    if (this.path === "a") return `#/a/${encodeURIComponent(this.albumId)}`;
-    if (this.path === "m") {
-      return `#/a/${encodeURIComponent(this.albumId)}/m/${encodeURIComponent(
-        this.mediaHash
-      )}`;
+    const album = `#/${RoutePath.ALBUM}/${encodeURIComponent(this.albumId)}`;
+
+    if (this.path === RoutePath.ALBUM) {
+      return album;
     }
+
+    if (this.path === RoutePath.VIEWER) {
+      return `${album}/${RoutePath.VIEWER}/${encodeURIComponent(this.mediaHash)}`;
+    }
+
     return "#/";
   }
 }
