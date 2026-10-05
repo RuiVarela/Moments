@@ -112,11 +112,6 @@ def test_valid_sort_params(
     assert response.status_code == 200
 
     response = client.get(
-        "/api/albums/vacation?sort=mtime&order=desc"
-    )
-    assert response.status_code == 200
-
-    response = client.get(
-        "/api/albums/vacation?sort=name&order=asc"
+        "/api/albums/vacation?sort=name&order=desc"
     )
     assert response.status_code == 200

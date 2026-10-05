@@ -6,7 +6,7 @@ from threading import Lock
 from typing import Optional
 
 from moments.config import Config
-from moments.drivers import images, videos
+from moments.drivers import filenames, images, videos
 from moments.storage import data, source
 from moments.types import ExtractionStatus, MediaItemDict
 
@@ -137,7 +137,6 @@ class ExtractionManager:
                     "hash": item_hash,
                     "path": str(rel_path),
                     "type": item_type,
-                    "mtime": int(stat.st_mtime),
                     "size": stat.st_size,
                     "date": None,
                     "gps": None,
@@ -181,6 +180,10 @@ class ExtractionManager:
                         ),
                         self._config.preview_size,
                     )
+
+                # No capture date in metadata → try name, e.g. "2006-03-03_00001.jpg".
+                if item.get("date") is None:
+                    item["date"] = filenames.date_from_name(rel_path.name)
 
                 items.append(item)
                 job.done += 1

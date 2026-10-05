@@ -86,18 +86,9 @@ def _sort_items(
     reverse = order == SortOrder.DESC
 
     if sort == SortKey.DATE:
-        return sorted(
-            items,
-            key=lambda x: x.get("date") or x.get("mtime") or 0,
-            reverse=reverse,
-        )
-    elif sort == SortKey.MTIME:
-        return sorted(
-            items,
-            key=lambda x: x.get("mtime") or 0,
-            reverse=reverse,
-        )
-    elif sort == SortKey.NAME:
+        return _sort_by_date(items, order)
+
+    if sort == SortKey.NAME:
         return sorted(
             items,
             key=lambda x: x.get("path", ""),
@@ -105,6 +96,22 @@ def _sort_items(
         )
 
     return items
+
+
+def _sort_by_date(
+    items: list[MediaItemDict], order: SortOrder
+) -> list[MediaItemDict]:
+    """Dated items by date; undated always after, by name.
+
+    Example (desc): [2024, 2010, <none a.jpg>, <none b.jpg>]
+    """
+    dated = [i for i in items if i.get("date") is not None]
+    undated = [i for i in items if i.get("date") is None]
+
+    dated.sort(key=lambda x: x.get("date") or 0, reverse=order == SortOrder.DESC)
+    undated.sort(key=lambda x: x.get("path", ""))
+
+    return dated + undated
 
 
 def _get_cover_url(album_id: str, items: list[MediaItemDict]) -> Optional[str]:

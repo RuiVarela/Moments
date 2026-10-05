@@ -112,7 +112,7 @@ export async function renderAlbum(app, route, navigate) { ... }
   - Videos: thumb + play badge + duration overlay.
 - Toolbar:
   - Title: album ID.
-  - Sort picker: dropdown (date/mtime/name) + order toggle (↑/↓), save to prefs.
+  - Sort picker: dropdown (date/name) + order toggle (↑/↓), save to prefs.
   - Options button → menu: "Re-extract" (POST, then poll status), current status text.
 
 ### Viewer (`views/viewer.js`)
@@ -131,7 +131,7 @@ export async function renderViewer(app, route, navigate) { ... }
   - **Buttons**: prev/next/close.
 - Preload neighbors (±1 media item).
 - **Info overlay** (toggle via `i` key or button):
-  - Date (EXIF or mtime).
+  - Date (EXIF/creation date, else from file name; "—" if none).
   - Dimensions (WxH).
   - GPS: "🗺 [lat, lon]" as OSM link (no map lib).
   - Video: duration.
@@ -194,7 +194,7 @@ Frozen enums:
 
 ```js
 RoutePath.LANDING, RoutePath.ALBUM, RoutePath.VIEWER  // path values
-SortKey.DATE, SortKey.MTIME, SortKey.NAME       // sort options
+SortKey.DATE, SortKey.NAME                      // sort options
 SortOrder.ASC, SortOrder.DESC                   // order direction
 Status.IDLE, Status.RUNNING, Status.FAILED      // extraction states
 MediaType.IMAGE, MediaType.VIDEO                // media type

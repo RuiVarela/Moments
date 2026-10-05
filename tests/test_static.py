@@ -91,3 +91,81 @@ def test_png_original_mime_type(client: TestClient, tmp_path: Path) -> None:
             assert (
                 "image/png" in response.headers["content-type"]
             ), f"Expected image/png, got {response.headers['content-type']}"
+
+
+_HTTP_PARTIAL_CONTENT = 206
+_HTTP_RANGE_NOT_SATISFIABLE = 416
+
+
+@pytest.fixture
+def original_url(config: Config, tmp_albums_dir: Path) -> tuple[TestClient, str, int]:
+    """Extracted album with one image; returns client, original URL, file size."""
+    import time
+
+    from PIL import Image
+
+    album = tmp_albums_dir / "ranges"
+    album.mkdir()
+    photo = album / "photo.jpg"
+    Image.new("RGB", (300, 300), (10, 120, 200)).save(photo)
+
+    client = TestClient(create_app(config))
+    client.get("/api/albums/ranges")
+    for _ in range(50):
+        if client.get("/api/albums/ranges/extract/status").json()["status"] != "running":
+            break
+        time.sleep(0.05)
+
+    media_hash = client.get("/api/albums/ranges").json()["items"][0]["hash"]
+    return client, f"/api/albums/ranges/media/{media_hash}/original", photo.stat().st_size
+
+
+def test_original_advertises_ranges(original_url: tuple[TestClient, str, int]) -> None:
+    """Full response says ranges are accepted (browsers need this to seek video)."""
+    client, url, size = original_url
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert response.headers["accept-ranges"] == "bytes"
+    assert len(response.content) == size
+
+
+@pytest.mark.parametrize(
+    ("range_header", "first", "last"),
+    [
+        ("bytes=0-99", 0, 99),
+        ("bytes=100-", 100, None),
+        ("bytes=-50", None, None),
+    ],
+)
+def test_original_serves_byte_ranges(
+    original_url: tuple[TestClient, str, int],
+    range_header: str,
+    first: int | None,
+    last: int | None,
+) -> None:
+    """Range requests → 206 with matching Content-Range and body."""
+    client, url, size = original_url
+    full = client.get(url).content
+
+    # Resolve open-ended / suffix ranges against file size.
+    if first is None:
+        first, last = size - 50, size - 1
+    if last is None:
+        last = size - 1
+
+    response = client.get(url, headers={"Range": range_header})
+
+    assert response.status_code == _HTTP_PARTIAL_CONTENT
+    assert response.headers["content-range"] == f"bytes {first}-{last}/{size}"
+    assert response.content == full[first : last + 1]
+
+
+def test_original_rejects_unsatisfiable_range(original_url: tuple[TestClient, str, int]) -> None:
+    """Range past end of file → 416."""
+    client, url, size = original_url
+
+    response = client.get(url, headers={"Range": f"bytes={size + 10}-"})
+
+    assert response.status_code == _HTTP_RANGE_NOT_SATISFIABLE

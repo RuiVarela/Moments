@@ -6,7 +6,7 @@ import { MS_PER_SECOND, OSM_URL, OSM_ZOOM } from "../constants.js";
 export function mediaInfo(item) {
   const rows = [
     row("File", fileName(item.path)),
-    row("Date", formatDate(item.date ?? item.mtime)),
+    row("Date", formatDate(item.date)),
     item.width ? row("Size", `${item.width} × ${item.height}`) : null,
     item.duration ? row("Duration", duration(item.duration)) : null,
     item.gps ? row("Location", gpsLink(item.gps)) : null,

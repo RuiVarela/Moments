@@ -49,6 +49,15 @@ def test_scan_album_includes_album_root_files(tmp_albums_dir: Path) -> None:
     assert paths == ["root.jpg", "sub/nested.jpg"]
 
 
+def test_scan_album_includes_avi_as_video(tmp_albums_dir: Path) -> None:
+    """AVI files are indexed as video (served as-is, no transcoding)."""
+    album_path = tmp_albums_dir / "album"
+    album_path.mkdir()
+    (album_path / "clip.AVI").write_bytes(b"")
+
+    assert source.scan_album(album_path) == [{"path": "clip.AVI", "type": "video"}]
+
+
 def test_list_albums_ignores_source_root_files(tmp_albums_dir: Path) -> None:
     """Loose files in source_dir belong to no album."""
     (tmp_albums_dir / "loose.jpg").write_bytes(b"")
@@ -77,7 +86,6 @@ def test_save_and_load_index(tmp_data_dir: Path) -> None:
             "hash": "abc123",
             "path": "subfolder/photo.jpg",
             "type": "image",
-            "mtime": 1000,
             "size": 50000,
             "date": 1705000000,
             "gps": {"lat": 37.7749, "lon": -122.4194},

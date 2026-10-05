@@ -8,7 +8,6 @@ export const RoutePath = Object.freeze({
 
 export const SortKey = Object.freeze({
   DATE: "date",
-  MTIME: "mtime",
   NAME: "name",
 });
 
@@ -41,7 +40,6 @@ export const CachePolicy = Object.freeze({
 
 export const SORT_LABELS = Object.freeze({
   [SortKey.DATE]: "Date taken",
-  [SortKey.MTIME]: "Modified",
   [SortKey.NAME]: "Name",
 });
 

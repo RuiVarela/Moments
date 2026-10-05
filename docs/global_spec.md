@@ -20,9 +20,11 @@ Each root-level folder under `source_dir` is one album. All subfolders nest with
 ## Media
 **Image formats**: JPEG, PNG, WebP, HEIC, GIF (Assumption).
 
-**Video formats**: MP4, WebM, MOV (Assumption). No transcoding; browser handles playback natively.
+**Video formats**: MP4, WebM, MOV, AVI. No transcoding; browser handles playback natively (AVI usually won't play in browsers; served as-is).
 
-Ordering: by EXIF date-taken (images) or video creation date (metadata), fallback to file modified time (mtime).
+**Date**: EXIF date-taken (images) or creation date (videos); fallback: file name `YYYY-MM-DD_*.ext` (e.g. `2006-03-03_00001.jpg`). Otherwise undated.
+
+**Ordering**: by date (undated last, by name) or by name.
 
 ## Extraction
 Per-album metadata job:
@@ -33,7 +35,7 @@ Per-album metadata job:
 - Images: EXIF date, GPS coords, dimensions.
 - Videos: creation date, duration, dimensions, codec; poster frame (first keyframe or 1s mark).
 
-**Incremental**: skip files unchanged (path + mtime + size match).
+**Re-extract**: reprocesses every file.
 
 **Output layout**:
 ```
@@ -56,7 +58,7 @@ Extraction runs in background; does not block API or UI. Progress tracked via st
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/api/albums` | GET | List all albums with counts, covers, extraction status. |
-| `/api/albums/<id>` | GET | Album metadata + media array. Query params: `sort` (date\|mtime\|name), `order` (asc\|desc). |
+| `/api/albums/<id>` | GET | Album metadata + media array. Query params: `sort` (date\|name), `order` (asc\|desc). |
 | `/api/albums/<id>/media/<hash>/thumb` | GET | Thumbnail (image or video poster). |
 | `/api/albums/<id>/media/<hash>/preview` | GET | Preview (image or video poster). |
 | `/api/albums/<id>/media/<hash>/original` | GET | Original file (image or video). |
@@ -64,7 +66,7 @@ Extraction runs in background; does not block API or UI. Progress tracked via st
 | `/api/albums/<id>/extract/status` | GET | Extraction status (state, done/total, error if failed). |
 
 ### Query Parameters
-- **sort**: `date` (default), `mtime`, `name` — sorting key for media items.
+- **sort**: `date` (default; undated last), `name` — sorting key for media items.
 - **order**: `asc` (default), `desc` — sort direction.
 
 ## Frontend
@@ -73,7 +75,7 @@ Three-page flow:
 **1. Landing page**: grid of all albums with cover image. Cover selection: prefer `cover.jpg` in album root; fallback to first sorted media.
 
 **2. Album view**: full-size grid of media (images + videos) with lazy-loaded thumbnails.
-- **Sorting**: dropdown to choose date-taken, file mtime, or filename (default: date-taken).
+- **Sorting**: dropdown to choose date taken or filename (default: date taken) + asc/desc toggle.
 - **Options button** (top-right): re-extract album, show extraction status.
 - Auto-starts extraction if not yet done (user sees status in options).
 

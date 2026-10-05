@@ -30,7 +30,7 @@ def get_album(
     """Get album detail with sorted media items.
 
     Query params:
-    - sort: date (default), mtime, name
+    - sort: date (default), name
     - order: asc (default), desc
     """
     config = request.app.state.config

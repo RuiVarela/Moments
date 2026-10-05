@@ -17,6 +17,7 @@ _VIDEO_EXTS: set[str] = {
     ".mp4",
     ".webm",
     ".mov",
+    ".avi",  # Served as-is; most browsers can't play it.
 }
 
 

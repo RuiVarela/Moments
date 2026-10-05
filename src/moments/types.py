@@ -22,7 +22,6 @@ class SortKey(StrEnum):
     """Sorting keys for media."""
 
     DATE = "date"
-    MTIME = "mtime"
     NAME = "name"
 
 
@@ -39,7 +38,6 @@ class MediaItemDict(TypedDict, total=False):
     hash: str
     path: str
     type: str  # "image" | "video"
-    mtime: int  # Unix timestamp
     size: int  # Bytes
     date: Optional[int]  # Unix timestamp or None
     gps: Optional[dict[str, float]]  # {"lat": ..., "lon": ...} or None

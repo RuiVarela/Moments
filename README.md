@@ -7,6 +7,7 @@ Self-hosted photo album. Reads folder hierarchies, extracts metadata (EXIF, GPS,
 ### Prerequisites
 - Python 3.11+
 - ffmpeg (for video metadata and poster extraction)
+- Google Chrome (Playwright browser checks use it via `channel="chrome"`; or run `playwright install chromium`)
 
 ### Setup
 ```bash

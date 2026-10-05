@@ -22,7 +22,7 @@ src/moments/
 │   └── data.py              # Index JSON (atomic write); file hashing; thumb/preview paths
 │
 ├── services/                # Business logic
-│   ├── albums.py            # List albums, get detail, sort by date/mtime/name, cover selection
+│   ├── albums.py            # List albums, get detail, sort by date/name, cover selection
 │   └── extraction.py        # ExtractionManager: per-album background jobs, state tracking
 │
 └── routes/                  # HTTP endpoints
@@ -148,7 +148,6 @@ Per-file errors logged and skipped; run continues. If all files fail, state = `f
       "hash": "abc123def456...",
       "path": "2024-01/photo_001.jpg",
       "type": "image",
-      "mtime": 1705000000,
       "size": 51234,
       "date": 1705000000,
       "gps": {"lat": 37.7749, "lon": -122.4194},
@@ -169,7 +168,7 @@ Per-file errors logged and skipped; run continues. If all files fail, state = `f
 
 ### Images (drivers/images.py)
 - **EXIF parsing**: datetime, GPS (lat/lon from IFD), dimensions.
-- **Fallback date**: EXIF DateTimeOriginal → DateTime → mtime.
+- **Fallback date**: EXIF DateTimeOriginal → DateTime → file name `YYYY-MM-DD_*.ext` (drivers/filenames.py) → none.
 - **Orientation**: EXIF orientation applied before resize (thumbs upright); width/height reported as displayed.
 - **Resize**: Pillow thumbnail to max_size (LANCZOS), save as JPEG.
 - **Error handling**: bad EXIF logged, still create thumbnails.
@@ -184,7 +183,7 @@ Per-file errors logged and skipped; run continues. If all files fail, state = `f
 
 ### Albums
 - `GET /api/albums`: List all with counts, covers, extraction status.
-- `GET /api/albums/{id}?sort=date|mtime|name&order=asc|desc`: Detail + sorted items.
+- `GET /api/albums/{id}?sort=date|name&order=asc|desc`: Detail + sorted items.
   - Starts extraction if not done.
   - Returns extraction status.
 
@@ -195,7 +194,7 @@ Per-file errors logged and skipped; run continues. If all files fail, state = `f
 - `GET .../thumb`: 200px thumbnail from data_dir.
 - `GET .../preview`: 800px preview from data_dir.
 
-All file serving uses `FileResponse` (range support for video seeking).
+All file serving uses `FileResponse`: `Accept-Ranges: bytes`, `Range` → 206 partial, past end → 416 (video seeking). Covered by tests/test_static.py.
 
 ### Extraction
 - `POST /api/albums/{id}/extract`: Start job; returns `{"status": "started"}`.
@@ -220,7 +219,7 @@ All file serving uses `FileResponse` (range support for video seeking).
 ### API Tests (tests/test_api.py)
 - List albums (empty, with data).
 - Get album detail (triggers extraction).
-- Sorting (date/mtime/name, asc/desc).
+- Sorting (date/name, asc/desc; undated last).
 - Extraction status.
 - File serving (404 before extraction).
 - Path traversal protection.
@@ -231,6 +230,7 @@ Run: `pytest` (all tests) or `pytest -k test_name` (specific).
 
 ### Runtime
 - `fastapi>=0.104.0`: Web framework.
+- `starlette>=0.39.0`: pinned for `FileResponse` HTTP Range (206/416); needed for video seeking and Safari playback.
 - `uvicorn>=0.24.0`: ASGI server.
 - `pillow>=10.0.0`: Image processing (EXIF, resize).
 - `pillow-heif>=0.15.0`: HEIC support.
@@ -238,7 +238,8 @@ Run: `pytest` (all tests) or `pytest -k test_name` (specific).
 
 ### Dev
 - `pytest>=7.4.0`: Test runner.
-- `httpx>=0.25.0`: Test client.
+- `httpx2>=2.13.0`: Test client backend (Starlette warns with plain `httpx`).
+- `playwright>=1.40.0`: Browser layout checks (installed Chrome).
 - `mypy>=1.7.0`: Type checking (strict).
 
 ### System
@@ -259,7 +260,6 @@ class ExtractionStatus(StrEnum):
 
 class SortKey(StrEnum):
     DATE = "date"
-    MTIME = "mtime"
     NAME = "name"
 
 class SortOrder(StrEnum):
@@ -270,7 +270,7 @@ class SortOrder(StrEnum):
 ### storage/source.py
 ```python
 _IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".gif"}
-_VIDEO_EXTS = {".mp4", ".webm", ".mov"}
+_VIDEO_EXTS = {".mp4", ".webm", ".mov", ".avi"}
 ```
 
 ### storage/data.py
