@@ -23,6 +23,7 @@ src/moments/static/
 │   ├── constants.js                 # Frozen enums (SortKey, Status, etc.)
 │   ├── poll.js                      # Poll helper (polling with cancellation)
 │   ├── prefs.js                     # localStorage: sort/order persistence
+│   ├── dates.js                     # groupByMonth(): month headers for date sort
 │   ├── dom.js                       # h() builder, icon helpers, duration()
 │   ├── components/
 │   │   ├── swipe.js                 # Pointer swipe detector (left/right callbacks)
@@ -30,7 +31,8 @@ src/moments/static/
 │   │   ├── media-tile.js            # (TODO) Media tile + video badge
 │   │   ├── sort-picker.js           # (TODO) Dropdown + order toggle
 │   │   ├── options-menu.js          # (TODO) Re-extract menu
-│   │   └── status-banner.js         # (TODO) Extraction progress banner
+│   │   ├── status-banner.js         # (TODO) Extraction progress banner
+│   │   └── month-divider.js         # Full-width "March 2006" grid header
 │   └── views/
 │       ├── albums.js                # Landing page (album grid)
 │       ├── album.js                 # Album detail (media grid + toolbar)
@@ -110,6 +112,7 @@ export async function renderAlbum(app, route, navigate) { ... }
 - Load prefs (sort, order).
 - Fetch `getAlbum(albumId, sort, order)`.
 - If `status.status === "running"`: show status banner, poll every 1s, reload on idle, show error + retry on failed.
+- Sorted by date → grid split by month: header ("March 2006") before each month, "Undated" last. Sorted by name → no headers.
 - Grid of media tiles:
   - Images: lazy-load thumbs; click → open viewer.
   - Videos: thumb + play badge + duration overlay.

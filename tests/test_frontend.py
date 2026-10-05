@@ -72,3 +72,65 @@ def test_route_roundtrip() -> None:
     """toString() output parses back to same route."""
     r = _parse_route("#/a/my%20trip/m/abc123")
     assert r["str"] == "#/a/my%20trip/m/abc123"
+
+
+def _group_by_month(items: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Run dates.groupByMonth() in Node (UTC, en-US) → [{label, count}]."""
+    assert _NODE is not None
+    dates_url = (_JS_DIR / "dates.js").as_uri()
+    script = f"""
+const {{ groupByMonth }} = await import({json.dumps(dates_url)});
+const groups = groupByMonth({json.dumps(items)}, "en-US");
+console.log(JSON.stringify(groups.map(g => ({{ label: g.label, count: g.items.length }}))));
+"""
+    result = subprocess.run(
+        [_NODE, "--input-type=module", "-e", script],
+        capture_output=True,
+        text=True,
+        env={"TZ": "UTC"},
+    )
+    assert result.returncode == 0, result.stderr
+    groups: list[dict[str, object]] = json.loads(result.stdout)
+    return groups
+
+
+# UTC timestamps.
+_MAR_03_2006 = 1141344000
+_MAR_20_2006 = 1142812800
+_APR_01_2006 = 1143849600
+
+
+def test_group_by_month_ascending() -> None:
+    """Consecutive same-month items share a header; undated grouped last."""
+    items = [
+        {"date": _MAR_03_2006},
+        {"date": _MAR_20_2006},
+        {"date": _APR_01_2006},
+        {"date": None},
+    ]
+
+    assert _group_by_month(items) == [
+        {"label": "March 2006", "count": 2},
+        {"label": "April 2006", "count": 1},
+        {"label": "Undated", "count": 1},
+    ]
+
+
+def test_group_by_month_descending() -> None:
+    """Order follows input (server already sorted)."""
+    items = [{"date": _APR_01_2006}, {"date": _MAR_20_2006}, {"date": _MAR_03_2006}]
+
+    assert _group_by_month(items) == [
+        {"label": "April 2006", "count": 1},
+        {"label": "March 2006", "count": 2},
+    ]
+
+
+def test_group_by_month_same_month_other_year() -> None:
+    """March 2006 ≠ March 2007."""
+    mar_2007 = _MAR_03_2006 + 365 * 24 * 3600
+
+    assert [g["label"] for g in _group_by_month([{"date": _MAR_03_2006}, {"date": mar_2007}])] == [
+        "March 2006",
+        "March 2007",
+    ]

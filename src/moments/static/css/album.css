@@ -246,3 +246,23 @@
     border-radius: 0;
   }
 }
+
+/* Month header in date-sorted grid; spans all columns. */
+.month-divider {
+  grid-column: 1 / -1;
+  padding: var(--space-6) var(--space-1) var(--space-1);
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--color-fg);
+}
+
+.month-divider:first-child {
+  padding-top: var(--space-1);
+}
+
+@media (max-width: 600px) {
+  .month-divider {
+    padding: var(--space-4) var(--space-3) var(--space-1);
+    font-size: var(--font-base);
+  }
+}

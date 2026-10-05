@@ -13,8 +13,10 @@ import { loadAlbum } from "../album-store.js";
 import { poll } from "../poll.js";
 import { getSort, getOrder, setSort, setOrder } from "../prefs.js";
 import { Route } from "../router.js";
-import { CachePolicy, MediaKind, POLL_INTERVAL_MS, RoutePath, Status } from "../constants.js";
+import { CachePolicy, MediaKind, POLL_INTERVAL_MS, RoutePath, SortKey, Status } from "../constants.js";
+import { groupByMonth } from "../dates.js";
 import { mediaTile } from "../components/media-tile.js";
+import { monthDivider } from "../components/month-divider.js";
 import { sortPicker } from "../components/sort-picker.js";
 import { optionsMenu } from "../components/options-menu.js";
 import { statusBanner } from "../components/status-banner.js";
@@ -88,13 +90,23 @@ class AlbumView {
       return;
     }
 
-    for (const item of items) {
-      this.#grid.appendChild(mediaTile({
-        item,
-        thumbUrl: mediaUrl(this.#albumId, item.hash, MediaKind.THUMB),
-        onOpen: () => this.#ctx.navigate(new Route(RoutePath.VIEWER, this.#albumId, item.hash)),
-      }));
+    if (this.#sort !== SortKey.DATE) {
+      this.#grid.append(...items.map((item) => this.#tile(item)));
+      return;
     }
+
+    // By date: month header before each month's tiles (timeline).
+    for (const group of groupByMonth(items)) {
+      this.#grid.append(monthDivider(group.label), ...group.items.map((item) => this.#tile(item)));
+    }
+  }
+
+  #tile(item) {
+    return mediaTile({
+      item,
+      thumbUrl: mediaUrl(this.#albumId, item.hash, MediaKind.THUMB),
+      onOpen: () => this.#ctx.navigate(new Route(RoutePath.VIEWER, this.#albumId, item.hash)),
+    });
   }
 
   #applyStatus(status) {
