@@ -38,7 +38,27 @@ def load_index(index_path: Path) -> Optional[list[MediaItemDict]]:
         return None
 
 
-def save_index(index_path: Path, items: list[MediaItemDict]) -> bool:
+def load_cover(index_path: Path) -> Optional[str]:
+    """User-chosen cover hash from index.json, or None."""
+    try:
+        with open(index_path) as f:
+            cover = json.load(f).get("cover")
+        return cover if isinstance(cover, str) else None
+    except Exception:
+        return None
+
+
+def save_cover(index_path: Path, cover: str) -> bool:
+    """Set cover hash in existing index.json (items untouched)."""
+    items = load_index(index_path)
+    if items is None:
+        return False
+    return save_index(index_path, items, cover)
+
+
+def save_index(
+    index_path: Path, items: list[MediaItemDict], cover: Optional[str] = None
+) -> bool:
     """Write index.json atomically (tmp + rename)."""
     try:
         index_path.parent.mkdir(parents=True, exist_ok=True)
@@ -47,6 +67,8 @@ def save_index(index_path: Path, items: list[MediaItemDict]) -> bool:
             "version": _INDEX_VERSION,
             "items": items,
         }
+        if cover:
+            index_data["cover"] = cover
 
         # Write to temp file, then rename (atomic).
         with tempfile.NamedTemporaryFile(

@@ -35,12 +35,13 @@ def get_album_detail(
 
     # Count and cover.
     count = len(items)
-    cover_url = _get_cover_url(album_id, items) if items else None
+    cover = _cover_hash(items, data.load_cover(index_path))
 
     return {
         "id": album_id,
         "count": count,
-        "cover": cover_url,
+        "cover": _cover_url(album_id, cover),
+        "cover_hash": cover,
         "items": sorted_items,
     }
 
@@ -60,7 +61,7 @@ def get_album_list_with_status(
         index_path = data.album_index_path(config.data_dir, album_id)
         items = data.load_index(index_path) or []
 
-        cover_url = _get_cover_url(album_id, items) if items else None
+        cover = _cover_hash(items, data.load_cover(index_path))
 
         # Get extraction status.
         status_dict = extraction_status_fn(album_id)
@@ -69,7 +70,8 @@ def get_album_list_with_status(
         item: AlbumListItemDict = {
             "id": album_id,
             "count": len(items),
-            "cover": cover_url,
+            "cover": _cover_url(album_id, cover),
+            "cover_hash": cover,
             "status": status_str,
         }
         result.append(item)
@@ -114,19 +116,37 @@ def _sort_by_date(
     return dated + undated
 
 
-def _get_cover_url(album_id: str, items: list[MediaItemDict]) -> Optional[str]:
-    """Get cover URL: prefer cover.jpg item, else first item."""
-    # Look for cover.jpg.
+def set_cover(config: Config, album_id: str, media_hash: str) -> bool:
+    """Store chosen cover in index. False if album not extracted or hash unknown."""
+    index_path = data.album_index_path(config.data_dir, album_id)
+    items = data.load_index(index_path) or []
+
+    if not any(item.get("hash") == media_hash for item in items):
+        return False
+
+    return data.save_cover(index_path, media_hash)
+
+
+def _cover_hash(items: list[MediaItemDict], chosen: Optional[str]) -> Optional[str]:
+    """Cover item: user choice (if still present) > cover.jpg > first item."""
+    hashes = {item["hash"] for item in items}
+    if chosen in hashes:
+        return chosen
+
     cover_item = next(
         (item for item in items if Path(item["path"]).name == "cover.jpg"),
         None,
     )
-
     if cover_item:
-        return f"/api/albums/{album_id}/media/{cover_item['hash']}/thumb"
+        return cover_item["hash"]
 
-    # Fallback to first item.
     if items:
-        return f"/api/albums/{album_id}/media/{items[0]['hash']}/thumb"
+        return items[0]["hash"]
 
     return None
+
+
+def _cover_url(album_id: str, cover: Optional[str]) -> Optional[str]:
+    if not cover:
+        return None
+    return f"/api/albums/{album_id}/media/{cover}/thumb"

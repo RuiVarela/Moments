@@ -11,11 +11,11 @@
 
 import { h, clear, icon } from "../dom.js";
 import { mediaUrl } from "../api.js";
-import { loadAlbum } from "../album-store.js";
+import { loadAlbum, saveCover } from "../album-store.js";
 import { getSort, getOrder } from "../prefs.js";
 import { Route } from "../router.js";
 import {
-  CachePolicy, HEIC_EXTS, KEY_NAMES, MediaKind, MediaType, PRELOAD_NEIGHBORS, RoutePath,
+  CachePolicy, CoverState, HEIC_EXTS, KEY_NAMES, MediaKind, MediaType, PRELOAD_NEIGHBORS, RoutePath,
 } from "../constants.js";
 import { SwipeDetector } from "../components/swipe.js";
 import { mediaInfo } from "../components/media-info.js";
@@ -37,6 +37,10 @@ class Viewer {
   #ctx;
   #items = [];
   #index = 0;
+  #coverHash = null;
+  #coverSaving = null;
+  #coverFailed = null;
+  #place = null;
   #media = null;
   #stage = h("div", { className: "viewer-stage" });
   #counter = h("span", { className: "viewer-counter" });
@@ -87,6 +91,7 @@ class Viewer {
       }
 
       this.#items = album.items;
+      this.#coverHash = album.cover_hash;
       const index = this.#items.findIndex((item) => item.hash === hash);
 
       if (index < 0) {
@@ -176,8 +181,8 @@ class Viewer {
   // Coords first; place name swapped in when resolved. Lookup only while panel open (third-party call).
   async #renderInfo() {
     const item = this.#items[this.#index];
-    clear(this.#info);
-    this.#info.appendChild(mediaInfo(item));
+    this.#place = null;
+    this.#drawInfo(item);
 
     if (this.#info.hidden || !item.gps) {
       return;
@@ -186,11 +191,49 @@ class Viewer {
     const place = await placeName(item.gps);
 
     // Navigated or closed meanwhile.
-    if (!place || this.#ctx.signal.aborted || this.#items[this.#index] !== item) {
+    if (!place || !this.#isCurrent(item)) {
       return;
     }
+    this.#place = place;
+    this.#drawInfo(item);
+  }
+
+  #drawInfo(item) {
+    const cover = { state: this.#coverState(item), onSet: () => this.#setCover(item) };
     clear(this.#info);
-    this.#info.appendChild(mediaInfo(item, place));
+    this.#info.appendChild(mediaInfo(item, this.#place, cover));
+  }
+
+  #coverState(item) {
+    const states = [
+      [this.#coverSaving, CoverState.SAVING],
+      [this.#coverHash, CoverState.CURRENT],
+      [this.#coverFailed, CoverState.FAILED],
+    ];
+    return states.find(([hash]) => hash === item.hash)?.[1] ?? CoverState.OTHER;
+  }
+
+  // Saving… → "Album cover ✓", or "Failed, retry".
+  async #setCover(item) {
+    this.#coverSaving = item.hash;
+    this.#coverFailed = null;
+    this.#drawInfo(item);
+
+    try {
+      await saveCover(this.#albumId, item.hash);
+      this.#coverHash = item.hash;
+    } catch {
+      this.#coverFailed = item.hash;
+    }
+    this.#coverSaving = null;
+
+    if (this.#isCurrent(item)) {
+      this.#drawInfo(item);
+    }
+  }
+
+  #isCurrent(item) {
+    return !this.#ctx.signal.aborted && this.#items[this.#index] === item;
   }
 
   #onKey(e) {

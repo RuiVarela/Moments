@@ -1,6 +1,6 @@
 """Type definitions for Moments."""
 from enum import StrEnum
-from typing import Optional, TypedDict
+from typing import NotRequired, Optional, TypedDict
 
 
 class MediaType(StrEnum):
@@ -52,6 +52,7 @@ class AlbumIndexDict(TypedDict):
 
     version: int
     items: list[MediaItemDict]
+    cover: NotRequired[Optional[str]]  # User-chosen cover item hash.
 
 
 class ExtractionProgressDict(TypedDict):
@@ -69,4 +70,5 @@ class AlbumListItemDict(TypedDict, total=False):
     id: str
     count: int
     cover: Optional[str]  # URL to cover image or None
+    cover_hash: Optional[str]
     status: str

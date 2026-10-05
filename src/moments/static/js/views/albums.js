@@ -1,8 +1,8 @@
 /* Landing view: grid of all albums. */
 
 import { h } from "../dom.js";
-import { listAlbums } from "../api.js";
-import { RoutePath } from "../constants.js";
+import { listAlbums, mediaUrl } from "../api.js";
+import { MediaKind, RoutePath } from "../constants.js";
 import { Route } from "../router.js";
 import { albumCard } from "../components/album-card.js";
 
@@ -29,7 +29,8 @@ export async function renderAlbums(app, route, { navigate, signal }) {
 
     for (const album of albums) {
       const onOpen = () => navigate(new Route(RoutePath.ALBUM, album.id));
-      grid.appendChild(albumCard({ album, onOpen }));
+      const previewUrl = album.cover_hash ? mediaUrl(album.id, album.cover_hash, MediaKind.PREVIEW) : null;
+      grid.appendChild(albumCard({ album, previewUrl, onOpen }));
     }
   } catch (err) {
     grid.appendChild(h("div", { className: "error-inline" },

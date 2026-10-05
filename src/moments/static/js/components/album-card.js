@@ -1,11 +1,13 @@
 /* Album card: cover, name, count, extraction badge. */
 
 import { h, icon } from "../dom.js";
-import { Status } from "../constants.js";
+import { COVER_SIZES, PREVIEW_PX, Status, THUMB_PX } from "../constants.js";
 
-export function albumCard({ album, onOpen }) {
+// previewUrl: sharper cover; browser takes it when card is wider than thumb.
+export function albumCard({ album, previewUrl, onOpen }) {
+  const srcset = previewUrl ? `${album.cover} ${THUMB_PX}w, ${previewUrl} ${PREVIEW_PX}w` : null;
   const cover = album.cover
-    ? h("img", { src: album.cover, alt: "", loading: "lazy" })
+    ? h("img", { src: album.cover, srcset, sizes: COVER_SIZES, alt: "", loading: "lazy" })
     : h("div", { className: "album-cover-placeholder" }, icon("photo"));
 
   const badge = album.status === Status.RUNNING

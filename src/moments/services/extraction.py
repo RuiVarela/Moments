@@ -207,4 +207,7 @@ class ExtractionManager:
     def _save_index(self, album_id: str, items: list[MediaItemDict]) -> bool:
         """Save index file."""
         index_path = data.album_index_path(self._config.data_dir, album_id)
-        return data.save_index(index_path, items)
+
+        # Keep user-chosen cover; read at save time so a pick made mid-run sticks.
+        cover = data.load_cover(index_path)
+        return data.save_index(index_path, items, cover)

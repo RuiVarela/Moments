@@ -1,6 +1,6 @@
 /* Album cache: album view and viewer share one fetch. */
 
-import { getAlbum } from "./api.js";
+import { getAlbum, setCover } from "./api.js";
 import { CachePolicy } from "./constants.js";
 
 let cached = null;
@@ -17,4 +17,13 @@ export async function loadAlbum(id, sort, order, policy) {
   const album = await getAlbum(id, sort, order);
   cached = { key, album };
   return album;
+}
+
+// Save cover; keep cached album in sync so reopening the viewer shows it.
+export async function saveCover(id, hash) {
+  await setCover(id, hash);
+
+  if (cached?.album.id === id) {
+    cached.album.cover_hash = hash;
+  }
 }

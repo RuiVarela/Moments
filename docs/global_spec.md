@@ -59,6 +59,7 @@ Extraction runs in background; does not block API or UI. Progress tracked via st
 |----------|--------|---------|
 | `/api/albums` | GET | List all albums with counts, covers, extraction status. |
 | `/api/albums/<id>` | GET | Album metadata + media array. Query params: `sort` (date\|name), `order` (asc\|desc). |
+| `/api/albums/<id>/cover` | PUT | Set cover: `{"hash": "<media hash>"}`. Stored in index. |
 | `/api/albums/<id>/media/<hash>/thumb` | GET | Thumbnail (image or video poster). |
 | `/api/albums/<id>/media/<hash>/preview` | GET | Preview (image or video poster). |
 | `/api/albums/<id>/media/<hash>/original` | GET | Original file (image or video). |
@@ -72,7 +73,7 @@ Extraction runs in background; does not block API or UI. Progress tracked via st
 ## Frontend
 Three-page flow:
 
-**1. Landing page**: grid of all albums with cover image. Cover selection: prefer `cover.jpg` in album root; fallback to first sorted media.
+**1. Landing page**: grid of all albums with cover image. Cover selection: user-chosen (viewer "Set as cover") > `cover.jpg` in album root > first media. Card loads preview instead of thumb when rendered larger than the thumb (`srcset`).
 
 **2. Album view**: full-size grid of media (images + videos) with lazy-loaded thumbnails.
 - **Sorting**: dropdown to choose date taken or filename (default: date taken) + asc/desc toggle.
@@ -90,7 +91,7 @@ Three-page flow:
   - Images: original file (JPEG/PNG/WebP/GIF).
   - HEIC/HEIF: preview (800px, since browsers don't render HEIC).
   - Videos: original file; browser plays natively.
-- **Info overlay** (toggle via `i` key): show date, dimensions, GPS as OpenStreetMap link labelled with place name (browser → Nominatim reverse geocoding; no embedded map).
+- **Info overlay** (toggle via `i` key): show date, dimensions, "Set as cover" button, GPS as OpenStreetMap link labelled with place name (browser → Nominatim reverse geocoding; no embedded map).
 
 No build step; vanilla JS + CSS Grid.
 

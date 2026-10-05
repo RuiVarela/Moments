@@ -94,6 +94,15 @@
   color: var(--color-viewer-link);
 }
 
+/* Base button is light-themed; viewer is always dark. */
+.media-info .cover-btn {
+  padding: 0 var(--space-2);
+  background: transparent;
+  border-color: currentColor;
+  color: inherit;
+  font-size: var(--font-sm);
+}
+
 /* Phones: side arrows overlay the media instead of taking width. */
 @media (max-width: 600px) {
   .viewer-body {

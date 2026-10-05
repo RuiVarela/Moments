@@ -105,7 +105,7 @@ export async function renderAlbums(app, route, navigate) { ... }
 ```
 
 - Fetch `listAlbums()`.
-- Grid of album cards (cover thumb or placeholder, name, count, "Extracting…" badge if running).
+- Grid of album cards (cover or placeholder, name, count, "Extracting…" badge if running). Cover `srcset`: thumb (200w) / preview (800w); browser picks by card size, so large cards aren't blurry.
 - Click card → `navigate(new Route("a", albumId))` → album view.
 - Error: show inline error + retry button.
 
@@ -148,6 +148,7 @@ export async function renderViewer(app, route, navigate) { ... }
   - Dimensions (WxH).
   - GPS: OSM link; label = place name ("Lisbon, Portugal") once resolved, else "lat, lon" (no map lib).
   - Video: duration.
+  - Cover: "Set as cover" → `saveCover()` (album-store: PUT + update cache) → "Album cover ✓".
 - **Pause video** when navigating to next/prev.
 
 ## Components (TODO)
@@ -166,7 +167,8 @@ All accept props + callbacks; no fetching.
 
 ```js
 export async function listAlbums()                           // → []
-export async function getAlbum(id, sort, order)             // → {id, count, items, status, cover}
+export async function getAlbum(id, sort, order)             // → {id, count, items, status, cover, cover_hash}
+export async function setCover(id, hash)                     // PUT cover → {cover_hash}
 export async function startExtract(id)                       // → {status: "started"}
 export async function getExtractStatus(id)                  // → {status, done, total, error}
 export function mediaUrl(albumId, hash, kind)               // → "/api/albums/.../media/.../thumb|preview|original"

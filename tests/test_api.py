@@ -1,5 +1,7 @@
 """Integration tests for API endpoints."""
+import time
 from pathlib import Path
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -115,3 +117,52 @@ def test_valid_sort_params(
         "/api/albums/vacation?sort=name&order=desc"
     )
     assert response.status_code == 200
+
+
+def _extracted(client: TestClient, album_id: str) -> dict[str, Any]:
+    """Run extraction to completion, return album detail."""
+    client.post(f"/api/albums/{album_id}/extract")
+    for _ in range(250):
+        if client.get(f"/api/albums/{album_id}/extract/status").json()["status"] != "running":
+            break
+        time.sleep(0.02)
+    detail: dict[str, Any] = client.get(f"/api/albums/{album_id}").json()
+    return detail
+
+
+def test_set_cover(client: TestClient, album_with_images: Path) -> None:
+    """Chosen item becomes cover in detail and list."""
+    album = _extracted(client, "vacation")
+    chosen = next(i for i in album["items"] if i["hash"] != album["cover_hash"])["hash"]
+
+    response = client.put("/api/albums/vacation/cover", json={"hash": chosen})
+
+    assert response.status_code == 200
+    assert client.get("/api/albums/vacation").json()["cover_hash"] == chosen
+    listed = client.get("/api/albums").json()[0]
+    assert listed["cover_hash"] == chosen
+    assert chosen in listed["cover"]
+
+
+def test_set_cover_unknown_hash(client: TestClient, album_with_images: Path) -> None:
+    """Hash not in album → 404, cover unchanged."""
+    before = _extracted(client, "vacation")["cover_hash"]
+
+    response = client.put("/api/albums/vacation/cover", json={"hash": "nope"})
+
+    assert response.status_code == 404
+    assert client.get("/api/albums/vacation").json()["cover_hash"] == before
+
+
+def test_set_cover_unknown_album(client: TestClient) -> None:
+    response = client.put("/api/albums/nonexistent/cover", json={"hash": "x"})
+    assert response.status_code == 404
+
+
+def test_cover_survives_reextract(client: TestClient, album_with_images: Path) -> None:
+    """Re-extraction rewrites index; chosen cover kept."""
+    album = _extracted(client, "vacation")
+    chosen = album["items"][-1]["hash"]
+    client.put("/api/albums/vacation/cover", json={"hash": chosen})
+
+    assert _extracted(client, "vacation")["cover_hash"] == chosen

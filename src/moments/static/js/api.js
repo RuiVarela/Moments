@@ -45,6 +45,15 @@ export async function getExtractStatus(id) {
   return resp.json();
 }
 
+export async function setCover(id, hash) {
+  const resp = await _fetch(`${albumPath(id)}/cover`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ hash }),
+  });
+  return resp.json();
+}
+
 export function mediaUrl(albumId, mediaHash, kind) {
   return `${albumPath(albumId)}/media/${encodeURIComponent(mediaHash)}/${kind}`;
 }

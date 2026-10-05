@@ -2,11 +2,18 @@
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 
 from moments.services import albums
 from moments.types import SortKey, SortOrder
 
 router = APIRouter(prefix="/api/albums", tags=["albums"])
+
+
+class CoverBody(BaseModel):
+    """PUT /cover body: {"hash": "<media hash>"}."""
+
+    hash: str
 
 
 @router.get("")
@@ -61,3 +68,14 @@ def get_album(
     detail["status"] = extraction_mgr.get_status(album_id)
 
     return detail
+
+
+@router.put("/{album_id}/cover")
+def put_cover(album_id: str, body: CoverBody, request: Request) -> dict[str, str]:
+    """Set album cover to one of its media items."""
+    config = request.app.state.config
+
+    if not albums.set_cover(config, album_id, body.hash):
+        raise HTTPException(status_code=404, detail="Album or media not found")
+
+    return {"cover_hash": body.hash}

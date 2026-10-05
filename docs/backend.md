@@ -167,9 +167,12 @@ Per-file errors logged and skipped; run continues and still counts toward `done`
       "duration": null,
       "codec": null
     }
-  ]
+  ],
+  "cover": "abc123def456..."
 }
 ```
+
+`cover` (optional): user-chosen cover item hash. Kept across re-extraction. Cover = `cover` if still in items > `cover.jpg` > first item.
 
 **Atomic write**: write to temp file, rename to target (no partial/corrupted files).
 
@@ -201,7 +204,8 @@ Per-file errors logged and skipped; run continues and still counts toward `done`
 ## API Endpoints
 
 ### Albums
-- `GET /api/albums`: List all with counts, covers, extraction status.
+- `GET /api/albums`: List all with counts, covers (`cover` thumb URL + `cover_hash`), extraction status.
+- `PUT /api/albums/{id}/cover` body `{"hash": "..."}`: set cover. 404 if album not extracted or hash unknown.
 - `GET /api/albums/{id}?sort=date|name&order=asc|desc`: Detail + sorted items.
   - Starts extraction if not done.
   - Returns extraction status.

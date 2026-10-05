@@ -33,6 +33,21 @@ export const MediaKind = Object.freeze({
   ORIGINAL: "original",
 });
 
+// Rendition widths (px) for srcset; mirror config thumb_size / preview_size defaults.
+export const THUMB_PX = 200;
+export const PREVIEW_PX = 800;
+
+// Album card rendered width; browser picks thumb or preview from it.
+export const COVER_SIZES = "(max-width: 600px) 50vw, 300px";
+
+// "Set as cover" button in viewer info panel.
+export const CoverState = Object.freeze({
+  OTHER: "other",
+  CURRENT: "current",
+  SAVING: "saving",
+  FAILED: "failed",
+});
+
 export const CachePolicy = Object.freeze({
   USE: "use",
   REFRESH: "refresh",
