@@ -1,13 +1,16 @@
 /* Bootstrap: route changes → view render.
 
    hashchange ─► router ─► render(route)
+                             ├─ save scroll of previous route
                              ├─ abort previous view (polls, listeners)
-                             └─ view(app, route, { navigate, replace, signal })
+                             ├─ view(app, route, { navigate, replace, signal })
+                             └─ view content ready → restore scroll
 */
 
 import { RoutePath } from "./constants.js";
 import { clear } from "./dom.js";
 import { Route, subscribe, navigate, replace } from "./router.js";
+import { saveScroll, restoreScroll } from "./scroll.js";
 import { renderAlbums } from "./views/albums.js";
 import { renderAlbum } from "./views/album.js";
 import { renderViewer } from "./views/viewer.js";
@@ -21,15 +24,28 @@ const VIEWS = Object.freeze({
 });
 
 let controller = null;
+let current = null;
 
-function render(route) {
+async function render(route) {
+  if (current) {
+    saveScroll(current, app);
+  }
+  current = route;
+
   controller?.abort();
   controller = new AbortController();
+  const { signal } = controller;
 
   clear(app);
 
+  // Views resolve once content is in the DOM; only then is the old height back.
   const view = VIEWS[route.path] ?? renderAlbums;
-  view(app, route, { navigate, replace, signal: controller.signal });
+  await view(app, route, { navigate, replace, signal });
+
+  if (signal.aborted) {
+    return;
+  }
+  restoreScroll(route, app);
 }
 
 subscribe(render);

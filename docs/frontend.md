@@ -23,6 +23,7 @@ src/moments/static/
 │   ├── constants.js                 # Frozen enums (SortKey, Status, etc.)
 │   ├── poll.js                      # Poll helper (polling with cancellation)
 │   ├── prefs.js                     # localStorage: sort/order persistence
+│   ├── scroll.js                    # Per-route scroll memory (back/close restores position)
 │   ├── dates.js                     # groupByMonth(): month headers for date sort
 │   ├── dom.js                       # h() builder, icon helpers, duration()
 │   ├── components/
@@ -48,6 +49,7 @@ src/moments/static/
 - **API** (`api.js`): ONLY place that calls `fetch()`. Throws `ApiError` on 4xx/5xx.
 - **Router** (`router.js`): parse/build routes, notify subscribers on hash change.
 - **Prefs** (`prefs.js`): localStorage read/write (try/catch wrapped).
+- **Scroll** (`scroll.js`): save section scroll on route leave; restore after view content renders (albums list, album grid).
 
 Components cannot call api.js directly; views orchestrate.
 

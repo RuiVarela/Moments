@@ -24,7 +24,7 @@ import { statusBanner } from "../components/status-banner.js";
 export function renderAlbum(app, route, ctx) {
   const view = new AlbumView(route.albumId, ctx);
   view.mount(app);
-  view.refresh();
+  return view.refresh();
 }
 
 class AlbumView {
