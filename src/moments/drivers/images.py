@@ -86,14 +86,21 @@ def _parse_gps_ifd(gps_ifd: dict[int, object]) -> Optional[dict[str, float]]:
         if lat is None or lon is None:
             return None
 
-        if lat_ref == b"S":
+        if _gps_ref(lat_ref) == "S":
             lat = -lat
-        if lon_ref == b"W":
+        if _gps_ref(lon_ref) == "W":
             lon = -lon
 
         return {"lat": lat, "lon": lon}
     except (ValueError, TypeError):
         return None
+
+
+# Pillow yields refs as str ("W"); some writers store bytes (b"W").
+def _gps_ref(ref: object) -> str:
+    if isinstance(ref, bytes):
+        return ref.decode("ascii", "ignore").strip("\x00 ")
+    return str(ref or "").strip("\x00 ")
 
 
 def _dms_to_decimal(dms: object) -> Optional[float]:

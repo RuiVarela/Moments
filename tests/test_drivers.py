@@ -72,3 +72,39 @@ def test_exif_dimensions_use_display_orientation(tmp_path: Path) -> None:
     exif = images.extract_exif(src)
 
     assert (exif["width"], exif["height"]) == (800, 1600)
+
+
+_GPS_IFD = 0x8825
+
+
+def _gps_jpeg(path: Path, lat_ref: str, lon_ref: str) -> Path:
+    """JPEG with GPS 38°42'50" lat, 9°8'21" lon (Lisbon when N/W)."""
+    exif = Image.Exif()
+    exif.get_ifd(_GPS_IFD).update({
+        1: lat_ref, 2: (38.0, 42.0, 50.0),
+        3: lon_ref, 4: (9.0, 8.0, 21.0),
+    })
+    Image.new("RGB", (8, 8)).save(path, exif=exif)
+    return path
+
+
+def test_exif_gps_west_is_negative(tmp_path: Path) -> None:
+    """Lisbon (N, W) → lon < 0; else link lands in the sea off Sardinia."""
+    src = _gps_jpeg(tmp_path / "lisbon.jpg", "N", "W")
+
+    gps = images.extract_exif(src)["gps"]
+
+    assert isinstance(gps, dict)
+    assert round(gps["lat"], 4) == 38.7139
+    assert round(gps["lon"], 4) == -9.1392
+
+
+def test_exif_gps_south_is_negative(tmp_path: Path) -> None:
+    """S ref → lat < 0."""
+    src = _gps_jpeg(tmp_path / "south.jpg", "S", "E")
+
+    gps = images.extract_exif(src)["gps"]
+
+    assert isinstance(gps, dict)
+    assert gps["lat"] < 0
+    assert gps["lon"] > 0
