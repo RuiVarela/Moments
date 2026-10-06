@@ -16,7 +16,8 @@ class CoverBody(BaseModel):
     hash: str
 
 
-@router.get("")
+# TypedDict for mypy only; as response model it drops undeclared keys.
+@router.get("", response_model=None)
 def list_albums(request: Request) -> list[AlbumListItemDict]:
     """List all albums with counts, covers, and extraction status."""
     config = request.app.state.config

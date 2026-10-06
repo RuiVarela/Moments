@@ -1,13 +1,15 @@
 """Integration tests for API endpoints."""
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, get_args, is_typeddict
 
 import pytest
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 from moments.app import create_app
 from moments.config import Config
+from moments.routes import albums, extract, media
 from tests.conftest import create_test_album
 
 
@@ -16,6 +18,25 @@ def client(config: Config) -> TestClient:
     """Create test client."""
     app = create_app(config)
     return TestClient(app)
+
+
+def test_route_types_are_not_response_models() -> None:
+    """Route TypedDict annotations are for mypy only.
+
+    As FastAPI response models they crash on Python < 3.12 (PydanticUserError)
+    and silently drop undeclared keys.
+    """
+    routers = [albums.router, media.router, extract.router]
+    routes = [r for router in routers for r in router.routes if isinstance(r, APIRoute)]
+
+    assert routes
+    assert all(r.response_model is None or not is_typeddict(_inner(r.response_model)) for r in routes)
+
+
+def _inner(tp: Any) -> Any:
+    """list[X] → X; else tp."""
+    args = get_args(tp)
+    return args[0] if args else tp
 
 
 def test_list_albums_empty(client: TestClient, tmp_albums_dir: Path) -> None:

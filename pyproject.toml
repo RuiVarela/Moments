@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "moments"
-version = "1.0.2"
+version = "1.0.3"
 description = "Self-hosted photo album"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.104.0",
     "starlette>=0.39.0",  # FileResponse HTTP Range support (video seeking).
@@ -42,7 +42,7 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = true
 warn_unused_configs = true
 disallow_untyped_defs = true

@@ -310,7 +310,7 @@ _INDEX_VERSION = 1  # Bump if index schema changes.
 ### Image (`Dockerfile`)
 
 ```
-python:3.11-slim + ffmpeg
+python:3.14-slim + ffmpeg
   pip install .          (non-editable; code + static/ in site-packages)
   /app/config.json       (docker/config.json: source_dir=/source, data_dir=/data)
   ENTRYPOINT entrypoint.sh ─► chown /data (top-level) ─► setpriv PUID:PGID ─► python -m moments
