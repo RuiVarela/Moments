@@ -13,13 +13,12 @@ from moments.types import MediaItemDict
 _logger = logging.getLogger(__name__)
 
 _ORIENTATION_TAG = 274
-_JPEG_QUALITY = 85
 
 # EXIF orientations that rotate 90°/270° → displayed width/height swap.
 _TRANSPOSED_ORIENTATIONS = {5, 6, 7, 8}
 
 
-def extract_exif(image_path: Path) -> dict[str, object]:
+def extract_exif(image_path: Path) -> MediaItemDict:
     """Extract EXIF data from image.
 
     Returns dict with:
@@ -27,7 +26,7 @@ def extract_exif(image_path: Path) -> dict[str, object]:
     - gps {"lat", "lon"} or None
     - width, height
     """
-    result: dict[str, object] = {
+    result: MediaItemDict = {
         "date": None,
         "gps": None,
         "width": None,
@@ -117,17 +116,18 @@ def _dms_to_decimal(dms: object) -> Optional[float]:
 
 
 class Rendition(NamedTuple):
-    """Output JPEG + max length (px) of its longest side."""
+    """Output square JPEG + max side length (px) + JPEG quality (1..95)."""
 
     path: Path
     max_size: int
+    quality: int
 
 
 def create_renditions(src_path: Path, renditions: list[Rendition]) -> bool:
-    """Decode source once; write every rendition, each resized from the previous.
+    """Decode source once; write every rendition (center-cropped square), each resized from the previous.
 
-    4000x3000 JPEG ─draft─► 1000x750 ─resize─► 800 ─rotate─► preview.jpg
-                                                └─resize─► 200 ─► thumb.jpg
+    4000x3000 JPEG ─draft─► 1066x800 ─crop+resize─► 800x800 ─rotate─► preview.jpg
+                                                       └─resize─► 200x200 ─► thumb.jpg
     """
     if not renditions:
         return True
@@ -138,14 +138,14 @@ def create_renditions(src_path: Path, renditions: list[Rendition]) -> bool:
         with Image.open(src_path) as img:
             _draft(img, largest_first[0].max_size)
 
-            # Rotate after shrinking: far fewer pixels. Output JPEG has no orientation tag.
-            img.thumbnail(_box(largest_first[0].max_size), Image.Resampling.LANCZOS)
-            current = ImageOps.exif_transpose(img)
+            # Rotate after shrinking: far fewer pixels. Center square crop is rotation-invariant.
+            # Output JPEG has no orientation tag.
+            current = ImageOps.exif_transpose(_square(img, largest_first[0].max_size))
 
             for rendition in largest_first:
-                current.thumbnail(_box(rendition.max_size), Image.Resampling.LANCZOS)
+                current = _square(current, rendition.max_size)
                 rendition.path.parent.mkdir(parents=True, exist_ok=True)
-                current.save(rendition.path, "JPEG", quality=_JPEG_QUALITY)
+                current.save(rendition.path, "JPEG", quality=rendition.quality)
 
         return True
     except Exception as e:
@@ -154,16 +154,21 @@ def create_renditions(src_path: Path, renditions: list[Rendition]) -> bool:
 
 
 def _draft(img: Image.Image, max_size: int) -> None:
-    """JPEG only: decode at 1/2, 1/4 or 1/8 scale, still >= target. No-op otherwise.
+    """JPEG only: decode at 1/2, 1/4 or 1/8 scale, shorter side still >= target. No-op otherwise.
 
     Example: 4000x3000 → 800 target → decodes 1000x750 instead of 12 MP.
     """
-    scale = max_size / max(img.size)
+    scale = max_size / min(img.size)
     if scale >= 1:
         return
 
     img.draft(None, (ceil(img.width * scale), ceil(img.height * scale)))
 
 
-def _box(max_size: int) -> tuple[int, int]:
-    return (max_size, max_size)
+def _square(img: Image.Image, max_size: int) -> Image.Image:
+    """Center-crop to square, shrink to max_size; never upscale.
+
+    Example: 1600x800, 200 → crop 800x800 (drop 400px each side) → 200x200.
+    """
+    side = min(*img.size, max_size)
+    return ImageOps.fit(img, (side, side), Image.Resampling.LANCZOS)

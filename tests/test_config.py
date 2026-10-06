@@ -30,7 +30,7 @@ def test_load_config_from_file(tmp_path: Path) -> None:
     assert cfg.data_dir == data_dir
 
 
-def test_load_config_from_env_var(tmp_path: Path, monkeypatch) -> None:
+def test_load_config_from_env_var(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test loading from MOMENTS_CONFIG env var."""
     config_file = tmp_path / "custom.json"
     source_dir = tmp_path / "source"
@@ -52,7 +52,7 @@ def test_load_config_from_env_var(tmp_path: Path, monkeypatch) -> None:
 
 
 def test_load_config_from_cwd_default(
-    tmp_path: Path, monkeypatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test loading config.json from cwd."""
     source_dir = tmp_path / "source"
@@ -97,6 +97,7 @@ def test_load_config_defaults(tmp_path: Path) -> None:
     assert cfg.port == 8000  # default
     assert cfg.thumb_size == 200  # default
     assert cfg.preview_size == 800  # default
+    assert cfg.jpeg_quality == 60  # default
 
 
 def test_load_config_missing_file() -> None:
@@ -134,6 +135,25 @@ def test_load_config_invalid_sizes(tmp_path: Path) -> None:
     )
 
     with pytest.raises(ValueError, match="positive"):
+        load_config(config_file)
+
+
+@pytest.mark.parametrize("quality", [0, 96])
+def test_load_config_invalid_jpeg_quality(tmp_path: Path, quality: int) -> None:
+    """jpeg_quality outside 1..95 rejected (Pillow: > 95 bloats, no gain)."""
+    config_file = tmp_path / "config.json"
+    source_dir = tmp_path / "source"
+    source_dir.mkdir()
+
+    config_file.write_text(
+        json.dumps({
+            "source_dir": str(source_dir),
+            "data_dir": str(tmp_path / "data"),
+            "jpeg_quality": quality,
+        })
+    )
+
+    with pytest.raises(ValueError, match="jpeg_quality"):
         load_config(config_file)
 
 

@@ -24,7 +24,7 @@ def load_index(index_path: Path) -> Optional[list[MediaItemDict]]:
             return None
 
         with open(index_path) as f:
-            data: dict[str, object] = json.load(f)
+            data: AlbumIndexDict = json.load(f)
 
         if data.get("version") != _INDEX_VERSION:
             _logger.warning(f"Index version mismatch: {index_path}")

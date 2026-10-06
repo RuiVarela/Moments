@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from moments.storage import data, source
+from moments.types import MediaItemDict
 from tests.conftest import create_test_album
 
 
@@ -28,7 +29,7 @@ def test_scan_album(tmp_albums_dir: Path) -> None:
     # Should find 3 images in subfolder, skip root files and hidden.
     assert len(items) == 3
     assert all(item["type"] == "image" for item in items)
-    assert all("photo_" in item["path"] for item in items)
+    assert all("photo_" in str(item["path"]) for item in items)
 
 
 def test_scan_album_includes_album_root_files(tmp_albums_dir: Path) -> None:
@@ -81,7 +82,7 @@ def test_save_and_load_index(tmp_data_dir: Path) -> None:
     """Test saving and loading index."""
     index_path = tmp_data_dir / "album" / "index.json"
 
-    items = [
+    items: list[MediaItemDict] = [
         {
             "hash": "abc123",
             "path": "subfolder/photo.jpg",
@@ -111,11 +112,11 @@ def test_index_atomic_write(tmp_data_dir: Path) -> None:
     index_path = tmp_data_dir / "album" / "index.json"
 
     # Write initial.
-    items1 = [{"hash": "v1", "path": "file1.jpg", "type": "image"}]
+    items1: list[MediaItemDict] = [{"hash": "v1", "path": "file1.jpg", "type": "image"}]
     data.save_index(index_path, items1)
 
     # Overwrite.
-    items2 = [{"hash": "v2", "path": "file2.jpg", "type": "image"}]
+    items2: list[MediaItemDict] = [{"hash": "v2", "path": "file2.jpg", "type": "image"}]
     data.save_index(index_path, items2)
 
     # Load and verify it's v2.

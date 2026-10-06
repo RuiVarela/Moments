@@ -9,7 +9,7 @@ from PIL import Image
 from moments.config import Config
 from moments.drivers import images
 from moments.services.extraction import ExtractionManager
-from moments.types import ExtractionStatus
+from moments.types import ExtractionStatus, MediaItemDict
 
 _FILES = 8
 _WORK_SECONDS = 0.05
@@ -82,7 +82,7 @@ def test_failing_file_skipped(
     _album(tmp_albums_dir)
     real = images.extract_exif
 
-    def flaky(path: Path) -> dict[str, object]:
+    def flaky(path: Path) -> MediaItemDict:
         if path.name == "3.jpg":
             raise OSError("boom")
         return real(path)

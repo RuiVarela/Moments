@@ -15,9 +15,9 @@ from moments.storage import data
 _EXIF_DATETIME_TAG = 306
 
 
-def _ts(*args: int) -> int:
+def _ts(year: int, month: int, day: int, hour: int = 0, minute: int = 0, second: int = 0) -> int:
     """Naive local timestamp, same convention as EXIF dates."""
-    return int(datetime(*args).timestamp())
+    return int(datetime(year, month, day, hour, minute, second).timestamp())
 
 
 @pytest.mark.parametrize(

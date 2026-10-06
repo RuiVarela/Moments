@@ -1,5 +1,6 @@
 """Album operations: list, detail, sorting, cover selection."""
 import logging
+from collections.abc import Callable
 from pathlib import Path
 from typing import Optional
 
@@ -48,7 +49,7 @@ def get_album_detail(
 
 def get_album_list_with_status(
     config: Config,
-    extraction_status_fn: object,  # Callable[[str], dict]
+    extraction_status_fn: Callable[[str], dict[str, object]],
 ) -> list[AlbumListItemDict]:
     """List albums with counts and covers."""
     albums = list_albums(config)

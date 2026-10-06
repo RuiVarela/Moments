@@ -11,15 +11,36 @@ from moments.drivers.images import Rendition
 from tests.conftest import create_test_video
 
 _ORIENTATION_TAG = 274
+_QUALITY = 60
 _ROTATE_90_CW = 6
 
 
+_RED = (255, 0, 0)
+_BLUE = (0, 0, 255)
+
+
 def _rotated_jpeg(path: Path) -> Path:
-    """Stored 1600x800 (landscape); EXIF says display rotated → 800x1600 portrait."""
+    """Stored 1600x800 (landscape, left red / right blue); EXIF says display rotated → 800x1600 portrait."""
+    img = Image.new("RGB", (1600, 800), _RED)
+    img.paste(_BLUE, (800, 0, 1600, 800))
+
     exif = Image.Exif()
     exif[_ORIENTATION_TAG] = _ROTATE_90_CW
-    Image.new("RGB", (1600, 800), (200, 50, 50)).save(path, exif=exif)
+    img.save(path, exif=exif)
     return path
+
+
+def _near(pixel: tuple[int, ...], color: tuple[int, int, int]) -> bool:
+    """JPEG is lossy; compare with tolerance."""
+    return all(abs(a - b) < 40 for a, b in zip(pixel, color))
+
+
+def _pixel(path: Path, xy: tuple[int, int]) -> tuple[int, ...]:
+    with Image.open(path) as img:
+        pixel = img.convert("RGB").getpixel(xy)
+
+    assert isinstance(pixel, tuple)  # RGB → (r, g, b).
+    return pixel
 
 
 def _size(path: Path) -> tuple[int, int]:
@@ -28,37 +49,66 @@ def _size(path: Path) -> tuple[int, int]:
 
 
 def test_renditions_apply_exif_orientation(tmp_path: Path) -> None:
-    """Phone photos store pixels sideways + orientation tag; every output must be upright."""
+    """Phone photos store pixels sideways + orientation tag; every output must be upright.
+
+    Stored red|blue, rotated 90° CW → red on top, blue at bottom.
+    """
     src = _rotated_jpeg(tmp_path / "phone.jpg")
     preview, thumb = tmp_path / "p.jpg", tmp_path / "t.jpg"
 
-    assert images.create_renditions(src, [Rendition(preview, 800), Rendition(thumb, 200)])
+    assert images.create_renditions(src, [Rendition(preview, 800, _QUALITY), Rendition(thumb, 200, _QUALITY)])
 
-    assert _size(preview) == (400, 800)
-    assert _size(thumb) == (100, 200)
+    assert _near(_pixel(thumb, (100, 10)), _RED)
+    assert _near(_pixel(thumb, (100, 190)), _BLUE)
 
 
-def test_renditions_any_target_order(tmp_path: Path) -> None:
-    """Small target listed first still gets correct size (derived from largest)."""
+def test_renditions_square(tmp_path: Path) -> None:
+    """Any aspect → square of max_size; small target listed first still correct."""
     src = tmp_path / "plain.jpg"
     Image.new("RGB", (1600, 800)).save(src)
     preview, thumb = tmp_path / "p.jpg", tmp_path / "t.jpg"
 
-    assert images.create_renditions(src, [Rendition(thumb, 200), Rendition(preview, 800)])
+    assert images.create_renditions(src, [Rendition(thumb, 200, _QUALITY), Rendition(preview, 800, _QUALITY)])
 
-    assert _size(preview) == (800, 400)
-    assert _size(thumb) == (200, 100)
+    assert _size(preview) == (800, 800)
+    assert _size(thumb) == (200, 200)
+
+
+def test_renditions_center_crop(tmp_path: Path) -> None:
+    """1200x400: red | blue | red thirds → square keeps only the blue center."""
+    src = tmp_path / "wide.png"
+    img = Image.new("RGB", (1200, 400), _RED)
+    img.paste(_BLUE, (400, 0, 800, 400))
+    img.save(src)
+    thumb = tmp_path / "t.jpg"
+
+    assert images.create_renditions(src, [Rendition(thumb, 200, _QUALITY)])
+
+    assert _near(_pixel(thumb, (2, 100)), _BLUE)
+    assert _near(_pixel(thumb, (197, 100)), _BLUE)
 
 
 def test_renditions_never_upscale(tmp_path: Path) -> None:
-    """Source smaller than target keeps its size."""
+    """Source shorter side below target → square of shorter side."""
     src = tmp_path / "small.jpg"
     Image.new("RGB", (300, 150)).save(src)
     preview = tmp_path / "p.jpg"
 
-    assert images.create_renditions(src, [Rendition(preview, 800)])
+    assert images.create_renditions(src, [Rendition(preview, 800, _QUALITY)])
 
-    assert _size(preview) == (300, 150)
+    assert _size(preview) == (150, 150)
+
+
+def test_renditions_quality(tmp_path: Path) -> None:
+    """Rendition quality reaches the encoder: lower quality → smaller file."""
+    src = tmp_path / "noise.png"
+    Image.effect_noise((400, 400), 64).convert("RGB").save(src)
+    low, high = tmp_path / "low.jpg", tmp_path / "high.jpg"
+
+    assert images.create_renditions(src, [Rendition(low, 200, 30)])
+    assert images.create_renditions(src, [Rendition(high, 200, 90)])
+
+    assert low.stat().st_size < high.stat().st_size
 
 
 def test_renditions_unreadable_source(tmp_path: Path) -> None:
@@ -66,7 +116,7 @@ def test_renditions_unreadable_source(tmp_path: Path) -> None:
     src = tmp_path / "bad.jpg"
     src.write_bytes(b"not an image")
 
-    assert not images.create_renditions(src, [Rendition(tmp_path / "p.jpg", 800)])
+    assert not images.create_renditions(src, [Rendition(tmp_path / "p.jpg", 800, _QUALITY)])
 
 
 def test_exif_dimensions_use_display_orientation(tmp_path: Path) -> None:
@@ -123,5 +173,15 @@ def test_poster_overwrites_existing(tmp_path: Path) -> None:
 
     assert videos.create_poster(tmp_path / "album" / "test_video.mp4", poster)
 
-    width, height = _size(poster)  # Raises if still the stale bytes.
-    assert width * 3 == height * 4
+    _size(poster)  # Raises if still the stale bytes.
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg not installed")
+def test_poster_square(tmp_path: Path) -> None:
+    """640x480 video → 480x480 center crop (never upscaled to 800)."""
+    assert create_test_video(tmp_path, "album")
+    poster = tmp_path / "poster.jpg"
+
+    assert videos.create_poster(tmp_path / "album" / "test_video.mp4", poster, 800)
+
+    assert _size(poster) == (480, 480)

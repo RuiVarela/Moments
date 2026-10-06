@@ -2,6 +2,7 @@
 import json
 import shutil
 import subprocess
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import pytest
@@ -74,7 +75,7 @@ def test_route_roundtrip() -> None:
     assert r["str"] == "#/a/my%20trip/m/abc123"
 
 
-def _group_by_month(items: list[dict[str, object]]) -> list[dict[str, object]]:
+def _group_by_month(items: Sequence[Mapping[str, object]]) -> list[dict[str, object]]:
     """Run dates.groupByMonth() in Node (UTC, en-US) → [{label, count}]."""
     assert _NODE is not None
     dates_url = (_JS_DIR / "dates.js").as_uri()
@@ -102,7 +103,7 @@ _APR_01_2006 = 1143849600
 
 def test_group_by_month_ascending() -> None:
     """Consecutive same-month items share a header; undated grouped last."""
-    items = [
+    items: list[dict[str, int | None]] = [
         {"date": _MAR_03_2006},
         {"date": _MAR_20_2006},
         {"date": _APR_01_2006},

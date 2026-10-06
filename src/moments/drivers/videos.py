@@ -3,14 +3,16 @@ import json
 import logging
 import subprocess
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
+
+from moments.types import MediaItemDict
 
 _logger = logging.getLogger(__name__)
 
 
 def extract_video_info(
     video_path: Path,
-) -> dict[str, object]:
+) -> MediaItemDict:
     """Extract video metadata using ffprobe.
 
     Returns dict with:
@@ -19,7 +21,7 @@ def extract_video_info(
     - duration (seconds)
     - codec
     """
-    result: dict[str, object] = {
+    result: MediaItemDict = {
         "date": None,
         "width": None,
         "height": None,
@@ -64,7 +66,7 @@ def extract_video_info(
     return result
 
 
-def _ffprobe(video_path: Path) -> Optional[dict[str, object]]:
+def _ffprobe(video_path: Path) -> Optional[dict[str, Any]]:
     """Run ffprobe and return JSON info dict."""
     try:
         output = subprocess.run(
@@ -83,7 +85,8 @@ def _ffprobe(video_path: Path) -> Optional[dict[str, object]]:
             timeout=10,
         )
         if output.returncode == 0:
-            return json.loads(output.stdout)
+            info: dict[str, Any] = json.loads(output.stdout)
+            return info
     except FileNotFoundError:
         _logger.debug("ffprobe not found; video metadata unavailable")
     except (json.JSONDecodeError, subprocess.TimeoutExpired):
@@ -111,6 +114,9 @@ def create_poster(
 
     Fallback to 1-second mark if no keyframe found.
     """
+    # Center-crop to square, shrink to max_size; never upscale. 640x480 → 480x480.
+    square = f"crop=min(iw\\,ih):min(iw\\,ih),scale=min(iw\\,{max_size}):-1"
+
     try:
         poster_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -124,7 +130,7 @@ def create_poster(
                 "-i",
                 str(video_path),
                 "-vf",
-                f"select=eq(pict_type\\,I),scale={max_size}:{max_size}:force_original_aspect_ratio=decrease",
+                f"select=eq(pict_type\\,I),{square}",
                 "-vframes",
                 "1",
                 str(poster_path),
@@ -146,7 +152,7 @@ def create_poster(
                     "-i",
                     str(video_path),
                     "-vf",
-                    f"scale={max_size}:{max_size}:force_original_aspect_ratio=decrease",
+                    square,
                     "-vframes",
                     "1",
                     str(poster_path),

@@ -3,6 +3,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
+from moments.services.extraction import ExtractionManager
+
 router = APIRouter(prefix="/api/albums/{album_id}/extract", tags=["extract"])
 
 
@@ -28,6 +30,6 @@ def get_extraction_status(
     album_id: str, request: Request
 ) -> dict[str, Any]:
     """Get extraction status for album."""
-    extraction_mgr = request.app.state.extraction_manager
+    extraction_mgr: ExtractionManager = request.app.state.extraction_manager
 
     return extraction_mgr.get_status(album_id)

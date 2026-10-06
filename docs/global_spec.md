@@ -40,8 +40,8 @@ Per-album metadata job:
 **Output layout**:
 ```
 data_dir/<album>/index.json              # metadata + file list
-data_dir/<album>/thumbs/<hash>.jpg       # 200px (image or video poster)
-data_dir/<album>/previews/<hash>.jpg     # 800px (image or video poster)
+data_dir/<album>/thumbs/<hash>.jpg       # 200x200 center crop (image or video poster)
+data_dir/<album>/previews/<hash>.jpg     # 800x800 center crop (image or video poster)
 ```
 
 **Triggers**:

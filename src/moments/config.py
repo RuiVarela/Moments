@@ -7,6 +7,10 @@ from pydantic import BaseModel, Field, field_validator
 _CONFIG_ENV_VAR = "MOMENTS_CONFIG"
 _CONFIG_DEFAULT_FILE = "config.json"
 
+# Pillow: above 95 the file grows with no visible gain.
+_JPEG_QUALITY_MIN = 1
+_JPEG_QUALITY_MAX = 95
+
 
 class Config(BaseModel):
     """Application configuration."""
@@ -14,8 +18,9 @@ class Config(BaseModel):
     port: int = Field(default=8000, description="HTTP server port")
     source_dir: Path = Field(description="Path to album folders")
     data_dir: Path = Field(description="Path for extracted metadata")
-    thumb_size: int = Field(default=200, description="Thumbnail max dimension (px)")
-    preview_size: int = Field(default=800, description="Preview max dimension (px)")
+    thumb_size: int = Field(default=200, description="Thumbnail square side (px)")
+    preview_size: int = Field(default=800, description="Preview square side (px)")
+    jpeg_quality: int = Field(default=60, description="Thumb/preview JPEG quality (1..95)")
     num_threads: int = Field(
         default_factory=lambda: os.cpu_count() or 1,
         description="Files extracted in parallel (default: CPU cores)",
@@ -47,6 +52,16 @@ class Config(BaseModel):
         """Sizes must be positive."""
         if v <= 0:
             raise ValueError(f"Size must be positive, got {v}")
+        return v
+
+    @field_validator("jpeg_quality")
+    @classmethod
+    def valid_quality(cls, v: int) -> int:
+        """Pillow JPEG quality range."""
+        if not _JPEG_QUALITY_MIN <= v <= _JPEG_QUALITY_MAX:
+            raise ValueError(
+                f"jpeg_quality must be {_JPEG_QUALITY_MIN}..{_JPEG_QUALITY_MAX}, got {v}"
+            )
         return v
 
     @field_validator("num_threads")

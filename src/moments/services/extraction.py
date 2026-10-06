@@ -180,10 +180,12 @@ class ExtractionManager:
         thumb = Rendition(
             data.thumb_path(self._config.data_dir, album_id, item_hash),
             self._config.thumb_size,
+            self._config.jpeg_quality,
         )
         preview = Rendition(
             data.preview_path(self._config.data_dir, album_id, item_hash),
             self._config.preview_size,
+            self._config.jpeg_quality,
         )
 
         if item_type == "image":

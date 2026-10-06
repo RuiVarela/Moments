@@ -3,5 +3,6 @@
   "source_dir": "/source",
   "data_dir": "/data",
   "thumb_size": 200,
-  "preview_size": 800
+  "preview_size": 800,
+  "jpeg_quality": 60
 }

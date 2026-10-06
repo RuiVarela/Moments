@@ -62,8 +62,9 @@ Loads from `config.json` file (or `$MOMENTS_CONFIG` env var). Validates at start
 - `data_dir` (string): path for extracted metadata, thumbnails, previews.
 
 **Optional**:
-- `thumb_size` (int): thumbnail max dimension in pixels (default 200).
-- `preview_size` (int): preview max dimension in pixels (default 800).
+- `thumb_size` (int): thumbnail square side in pixels (default 200).
+- `preview_size` (int): preview square side in pixels (default 800).
+- `jpeg_quality` (int): thumb/preview JPEG quality, 1..95 (default 60).
 - `num_threads` (int): files extracted in parallel (default: CPU cores; must be ≥ 1).
 
 ### Example
@@ -75,6 +76,7 @@ Loads from `config.json` file (or `$MOMENTS_CONFIG` env var). Validates at start
   "data_dir": "/app/data",
   "thumb_size": 200,
   "preview_size": 800,
+  "jpeg_quality": 60,
   "num_threads": 4
 }
 ```
@@ -84,6 +86,7 @@ Loads from `config.json` file (or `$MOMENTS_CONFIG` env var). Validates at start
 - **Fail-fast**: missing or invalid `source_dir` raises `ValueError` at startup.
 - **Type coercion**: string paths converted to `Path` objects.
 - **Positive sizes**: `thumb_size` and `preview_size` must be > 0.
+- **JPEG quality**: `jpeg_quality` must be 1..95.
 
 Pydantic validates config against schema on load (see config.py for validators).
 
@@ -183,12 +186,13 @@ Per-file errors logged and skipped; run continues and still counts toward `done`
 ### Images (drivers/images.py)
 - **EXIF parsing**: datetime, GPS (lat/lon from IFD), dimensions.
 - **Fallback date**: EXIF DateTimeOriginal → DateTime → file name `YYYY-MM-DD_*.ext` (drivers/filenames.py) → none.
-- **Renditions** (`create_renditions`): one decode → preview + thumb.
+- **Renditions** (`create_renditions`): one decode → preview + thumb, center-cropped squares.
   ```
-  4000x3000 JPEG ─draft─► 1000x750 ─resize─► 800 ─rotate─► preview.jpg
-                                              └─resize─► 200 ─► thumb.jpg
+  4000x3000 JPEG ─draft─► 1000x750 ─crop+resize─► 800x800 ─rotate─► preview.jpg
+                                                     └─resize─► 200x200 ─► thumb.jpg
   ```
-  - `draft()`: JPEG decoded at 1/2–1/8 scale, still ≥ target (biggest win).
+  - Square side = min(shorter source side, target); never upscaled.
+  - `draft()`: JPEG decoded at 1/2–1/8 scale, shorter side still ≥ target (biggest win).
   - Largest first; each smaller size resized from the previous.
   - EXIF orientation applied after first resize (fewer pixels); outputs upright.
   - ~2.4× faster than decoding per size (57 → 24 ms/photo, 3.7 MP avg).
@@ -197,7 +201,7 @@ Per-file errors logged and skipped; run continues and still counts toward `done`
 
 ### Videos (drivers/videos.py)
 - **ffprobe**: extract creation_time, duration, codec, width/height.
-- **Poster**: ffmpeg "select keyframe" or fallback to 1-second frame. Run once at preview size; thumb resized from it via `create_renditions`.
+- **Poster**: ffmpeg "select keyframe" or fallback to 1-second frame. Center-cropped square, never upscaled. Run once at preview size; thumb resized from it via `create_renditions`.
 - **Skip if ffmpeg missing**: logs debug message, returns empty metadata.
 - **Error tolerance**: failed ffmpeg → no poster, but video still indexed.
 

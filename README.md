@@ -80,8 +80,9 @@ Defaults are baked into the image. To override, mount a `config.json` at `/app/c
 - `port`: HTTP server port (default 8000).
 - `source_dir`: Path to album folders (required; folders inside this directory are albums).
 - `data_dir`: Path for extracted metadata, thumbnails, previews.
-- `thumb_size`: Thumbnail max dimension in pixels (default 200).
-- `preview_size`: Preview max dimension in pixels (default 800).
+- `thumb_size`: Thumbnail square side in pixels (default 200).
+- `preview_size`: Preview square side in pixels (default 800).
+- `jpeg_quality`: Thumbnail/preview JPEG quality, 1..95 (default 60).
 - `num_threads`: Files extracted in parallel (default: number of CPU cores).
 
 ### Security
@@ -97,9 +98,13 @@ Defaults are baked into the image. To override, mount a `config.json` at `/app/c
 
 ### 1. Push (multi-arch)
 ```bash
+
 docker login
 docker buildx create --name moments-builder --use     # once
-VERSION=1.0.1
+
+VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml)
+echo "Version: ${VERSION}"
+
 docker buildx build --platform linux/amd64,linux/arm64 \
   --build-arg VERSION=${VERSION} \
   -t ruifilipevarela/moments:${VERSION} -t ruifilipevarela/moments:latest \

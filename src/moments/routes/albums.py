@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from moments.services import albums
-from moments.types import SortKey, SortOrder
+from moments.types import AlbumListItemDict, SortKey, SortOrder
 
 router = APIRouter(prefix="/api/albums", tags=["albums"])
 
@@ -17,7 +17,7 @@ class CoverBody(BaseModel):
 
 
 @router.get("")
-def list_albums(request: Request) -> list[dict[str, Any]]:
+def list_albums(request: Request) -> list[AlbumListItemDict]:
     """List all albums with counts, covers, and extraction status."""
     config = request.app.state.config
     extraction_mgr = request.app.state.extraction_manager
