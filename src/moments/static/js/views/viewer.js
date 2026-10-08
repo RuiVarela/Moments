@@ -324,8 +324,10 @@ function isHidden(el) {
   return el.classList.contains(BAR_HIDDEN_CLASS);
 }
 
+// Mouse press doesn't focus (arrow keys would show its focus ring); Tab still does.
 function navButton(iconName, label, onClick) {
-  return h("button", { type: "button", className: `viewer-btn viewer-${iconName}`, "aria-label": label, title: label, onClick },
+  const onMousedown = (e) => e.preventDefault();
+  return h("button", { type: "button", className: `viewer-btn viewer-${iconName}`, "aria-label": label, title: label, onClick, onMousedown },
     icon(iconName),
   );
 }

@@ -145,8 +145,8 @@ export async function renderViewer(app, route, navigate) { ... }
   - Drag: pan, clamped to image edges.
   - Double tap: fit ↔ fill (image covers screen), toward tap point; animated (`--zoom-anim`).
   - Single tap waits `DOUBLE_TAP_MS` before toggling the top bar.
-  - **Buttons**: prev/next/close.
-- **Top bar**: semi-transparent overlay on media; prev · counter · next centered, close/info left. Slides in from top on open; tap on media toggles it. 500 ms (`--viewer-bar-anim`).
+  - **Buttons**: prev/next/close/info/fullscreen. Mouse click doesn't focus them (no focus ring on arrow keys); Tab does.
+- **Top bar**: semi-transparent overlay on media; prev · counter · next centered, close/info/fullscreen left (fullscreen toggles browser fullscreen). Slides in from top on open; tap on media toggles it. 500 ms (`--viewer-bar-anim`).
 - Preload neighbors (±1 media item).
 - **Info overlay** (toggle via `i` key or button): semi-transparent, over media bottom; slides in/out from bottom.
   - Date (EXIF/creation date, else from file name; "—" if none).

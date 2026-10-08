@@ -115,12 +115,22 @@ def _drag(page: "playwright_api.Page", dx: int) -> None:
     page.mouse.up()
 
 
-def test_arrows_leave_close_unfocused(viewer: "playwright_api.Page") -> None:
-    """← → navigate without putting focus on the close button."""
+def test_arrows_leave_buttons_unfocused(viewer: "playwright_api.Page") -> None:
+    """← → navigate without putting focus on top bar buttons."""
     viewer.keyboard.press("ArrowRight")
     viewer.keyboard.press("ArrowLeft")
 
-    assert not viewer.eval_on_selector(".viewer-close", "e => e === document.activeElement")
+    active = viewer.evaluate("() => document.activeElement.className")
+    assert "viewer-btn" not in active
+
+
+def test_clicked_button_stays_unfocused(viewer: "playwright_api.Page") -> None:
+    """Mouse click on a bar button doesn't focus it (arrows would show its focus ring)."""
+    viewer.click(".viewer-fullscreen")
+    viewer.keyboard.press("ArrowRight")
+
+    active = viewer.evaluate("() => document.activeElement.className")
+    assert "viewer-btn" not in active
 
 
 def test_first_display_fits(viewer: "playwright_api.Page") -> None:
