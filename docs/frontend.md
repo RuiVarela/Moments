@@ -86,8 +86,6 @@ CSS variables with light/dark theme:
 @media (prefers-color-scheme: dark) { :root { /* override */ } }
 ```
 
-Respects `prefers-reduced-motion: reduce` (no transitions/animations).
-
 ### Layout
 
 - `#app`: flex column, height 100%.
@@ -142,8 +140,9 @@ export async function renderViewer(app, route, navigate) { ... }
   - **Keyboard**: ← → (prev/next), Esc (close), i (toggle info).
   - **Swipe**: left (prev), right (next) via `SwipeDetector`.
   - **Buttons**: prev/next/close.
+- **Top bar**: semi-transparent overlay on media; prev · counter · next centered, close/info left. Slides in from top on open; tap on media toggles it. 500 ms (`--viewer-bar-anim`).
 - Preload neighbors (±1 media item).
-- **Info overlay** (toggle via `i` key or button):
+- **Info overlay** (toggle via `i` key or button): semi-transparent, over media bottom; slides in/out from bottom.
   - Date (EXIF/creation date, else from file name; "—" if none).
   - Dimensions (WxH).
   - GPS: OSM link; label = place name ("Lisbon, Portugal") once resolved, else "lat, lon" (no map lib).
@@ -220,6 +219,7 @@ MediaKind.THUMB, MediaKind.PREVIEW, MediaKind.ORIGINAL
 Plus:
 - `POLL_INTERVAL_MS`: extraction status poll interval (1000 ms).
 - `SWIPE_THRESHOLD_PX`: min swipe distance (50 px).
+- `TAP_SLOP_PX`: max pointer movement still counted as tap (10 px).
 - `KEY_NAMES`: { ARROW_LEFT, ARROW_RIGHT, ESCAPE, I }.
 - `HEIC_EXTS`: file extensions that need preview fallback.
 
@@ -227,11 +227,11 @@ Plus:
 
 ```js
 export class SwipeDetector {
-  constructor(el, {onLeft, onRight})   // Bind to element; callback on swipe
+  constructor(el, {onSwipeLeft, onSwipeRight, onTap})   // Bind to element; onTap optional
 }
 ```
 
-Uses pointer events; calls `onLeft()` on right swipe, `onRight()` on left swipe (threshold 50px).
+Uses pointer events; `onSwipeLeft()` / `onSwipeRight()` past 50px, `onTap()` under 10px.
 
 ### Prefs (`prefs.js`)
 
@@ -273,7 +273,6 @@ export async function poll(fn, until, intervalMs, signal)
 - Focus management in viewer (trap focus if modal-like).
 - Keyboard nav: arrows, Esc, `i` all supported.
 - Color contrast: tokens ensure sufficient contrast in both themes.
-- `prefers-reduced-motion`: no transitions/animations.
 - Semantic HTML: `<main>`, `<button>`, `<img alt="">`, `<video>`.
 
 ## Performance

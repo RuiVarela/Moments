@@ -70,6 +70,7 @@ export const MS_PER_SECOND = 1000;
 export const POLL_INTERVAL_MS = 1000;
 export const PRELOAD_NEIGHBORS = 1;
 export const SWIPE_THRESHOLD_PX = 50;
+export const TAP_SLOP_PX = 10;
 
 export const KEY_NAMES = Object.freeze({
   ARROW_LEFT: "ArrowLeft",

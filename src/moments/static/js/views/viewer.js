@@ -1,9 +1,9 @@
 /* Viewer: full-screen media, one item at a time.
 
    ┌──────────────────────────────────┐
-   │ 3 / 42                    ℹ  ✕   │  top bar
-   │ ❮          [ media ]          ❯  │  stage (swipe ◄ ►)
-   │ [ info panel, toggled by "i" ]   │
+   │░ ✕  ℹ ░░░░ ❮  3 / 42  ❯ ░░░░░░░░░│  top bar, semi-transparent, over media
+   │             [ media ]            │  stage (swipe ◄ ►, tap toggles top bar)
+   │░[ info panel, toggled by "i" ]░░░│  semi-transparent, over media
    └──────────────────────────────────┘
    Keys: ← → navigate, Esc close, i info.
    Next/prev replace the URL (no history entry per photo).
@@ -20,6 +20,13 @@ import {
 import { SwipeDetector } from "../components/swipe.js";
 import { mediaInfo } from "../components/media-info.js";
 import { placeName } from "../places.js";
+
+const Bar = Object.freeze({
+  SHOWN: "shown",
+  HIDDEN: "hidden",
+});
+
+const BAR_HIDDEN_CLASS = "viewer-bar--hidden";
 
 const Step = Object.freeze({
   PREV: -1,
@@ -44,7 +51,8 @@ class Viewer {
   #media = null;
   #stage = h("div", { className: "viewer-stage" });
   #counter = h("span", { className: "viewer-counter" });
-  #info = h("div", { className: "viewer-info", hidden: true });
+  #info = h("div", { className: `viewer-info-panel ${BAR_HIDDEN_CLASS}`, inert: true });
+  #top;
   #prevBtn;
   #nextBtn;
   #closeBtn;
@@ -59,27 +67,33 @@ class Viewer {
   }
 
   mount(app) {
-    const top = h("div", { className: "viewer-top" },
-      this.#counter,
+    // Grid: actions | nav | empty, keeps nav centered.
+    // Starts hidden; slides in once mounted.
+    this.#top = h("div", { className: `viewer-top ${BAR_HIDDEN_CLASS}`, inert: true },
       h("div", { className: "viewer-actions" },
-        navButton("info", "Info", () => this.#toggleInfo()),
         this.#closeBtn,
+        navButton("info", "Info", () => this.#toggleInfo()),
       ),
+      h("div", { className: "viewer-nav" }, this.#prevBtn, this.#counter, this.#nextBtn),
+      h("div"),
     );
 
-    const body = h("div", { className: "viewer-body" }, this.#prevBtn, this.#stage, this.#nextBtn);
+    const body = h("div", { className: "viewer-body" }, this.#stage, this.#top, this.#info);
 
     app.appendChild(h("div", { className: "viewer", role: "dialog", "aria-label": "Media viewer" },
-      top, body, this.#info,
+      body,
     ));
 
     new SwipeDetector(this.#stage, {
       onSwipeLeft: () => this.#step(Step.NEXT),
       onSwipeRight: () => this.#step(Step.PREV),
+      onTap: () => this.#toggleTop(),
     });
 
     document.addEventListener("keydown", (e) => this.#onKey(e), { signal: this.#ctx.signal });
-    this.#closeBtn.focus();
+    // Reflow commits hidden state so the slide-in animates.
+    void this.#top.offsetHeight;
+    setBar(this.#top, Bar.SHOWN);
   }
 
   // Load album items (cached when coming from album view), show requested hash.
@@ -173,8 +187,12 @@ class Viewer {
     this.#ctx.navigate(new Route(RoutePath.ALBUM, this.#albumId));
   }
 
+  #toggleTop() {
+    setBar(this.#top, isHidden(this.#top) ? Bar.SHOWN : Bar.HIDDEN);
+  }
+
   #toggleInfo() {
-    this.#info.hidden = !this.#info.hidden;
+    setBar(this.#info, isHidden(this.#info) ? Bar.SHOWN : Bar.HIDDEN);
     this.#renderInfo();
   }
 
@@ -184,7 +202,7 @@ class Viewer {
     this.#place = null;
     this.#drawInfo(item);
 
-    if (this.#info.hidden || !item.gps) {
+    if (isHidden(this.#info) || !item.gps) {
       return;
     }
 
@@ -267,6 +285,17 @@ class Viewer {
 function imageKind(item) {
   const ext = item.path.slice(item.path.lastIndexOf(".")).toLowerCase();
   return HEIC_EXTS.has(ext) ? MediaKind.PREVIEW : MediaKind.ORIGINAL;
+}
+
+// Slide bar out/in (direction set in CSS); inert keeps hidden buttons out of tab order.
+function setBar(el, bar) {
+  const hidden = bar === Bar.HIDDEN;
+  el.classList.toggle(BAR_HIDDEN_CLASS, hidden);
+  el.inert = hidden;
+}
+
+function isHidden(el) {
+  return el.classList.contains(BAR_HIDDEN_CLASS);
 }
 
 function navButton(iconName, label, onClick) {
