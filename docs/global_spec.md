@@ -85,6 +85,7 @@ Three-page flow:
 - **Navigation**: 
   - Left/Right arrow keys (desktop).
   - Swipe left/right (mobile).
+  - Zoom: mouse wheel, pinch; drag pans; double tap fit ↔ fill.
   - Previous/Next buttons.
   - Close button (ESC key or X button).
 - **Media source**:

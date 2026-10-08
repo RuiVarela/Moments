@@ -2,10 +2,11 @@
 
    ┌──────────────────────────────────┐
    │░ ✕  ℹ ░░░░ ❮  3 / 42  ❯ ░░░░░░░░░│  top bar, semi-transparent, over media
-   │             [ media ]            │  stage (swipe ◄ ►, tap toggles top bar)
+   │             [ media ]            │  stage (swipe ◄ ►, tap toggles top bar, zoom/pan)
    │░[ info panel, toggled by "i" ]░░░│  semi-transparent, over media
    └──────────────────────────────────┘
    Keys: ← → navigate, Esc close, i info.
+   Images: wheel/pinch zoom, drag pans, double tap fit ↔ fill. Swipe only when not zoomed.
    Next/prev replace the URL (no history entry per photo).
 */
 
@@ -17,7 +18,8 @@ import { Route } from "../router.js";
 import {
   CachePolicy, CoverState, HEIC_EXTS, KEY_NAMES, MediaKind, MediaType, PRELOAD_NEIGHBORS, RoutePath,
 } from "../constants.js";
-import { SwipeDetector } from "../components/swipe.js";
+import { Gestures, Swipe } from "../components/gestures.js";
+import { ZoomPan } from "../components/zoom-pan.js";
 import { mediaInfo } from "../components/media-info.js";
 import { placeName } from "../places.js";
 
@@ -49,6 +51,7 @@ class Viewer {
   #coverFailed = null;
   #place = null;
   #media = null;
+  #zoom = null;
   #stage = h("div", { className: "viewer-stage" });
   #counter = h("span", { className: "viewer-counter" });
   #info = h("div", { className: `viewer-info-panel ${BAR_HIDDEN_CLASS}`, inert: true });
@@ -84,11 +87,14 @@ class Viewer {
       body,
     ));
 
-    new SwipeDetector(this.#stage, {
-      onSwipeLeft: () => this.#step(Step.NEXT),
-      onSwipeRight: () => this.#step(Step.PREV),
+    new Gestures(this.#stage, {
       onTap: () => this.#toggleTop(),
-    });
+      onDoubleTap: (x, y) => this.#zoom?.toggleFill(x, y),
+      onDrag: (dx, dy) => this.#zoom?.panBy(dx, dy),
+      onPinch: (ratio, x, y) => this.#zoom?.zoomBy(ratio, x, y),
+      onWheel: (ratio, x, y) => this.#zoom?.zoomBy(ratio, x, y),
+      onSwipe: (swipe) => this.#swipe(swipe),
+    }, this.#ctx.signal);
 
     document.addEventListener("keydown", (e) => this.#onKey(e), { signal: this.#ctx.signal });
     // Reflow commits hidden state so the slide-in animates.
@@ -131,6 +137,9 @@ class Viewer {
     this.#media = this.#buildMedia(item);
     clear(this.#stage);
     this.#stage.appendChild(this.#media);
+
+    // Zoom images only; fresh state per item (starts at fit).
+    this.#zoom = item.type === MediaType.IMAGE ? new ZoomPan(this.#media, this.#stage) : null;
 
     this.#counter.textContent = `${index + 1} / ${this.#items.length}`;
     this.#prevBtn.disabled = index === 0;
@@ -180,6 +189,14 @@ class Viewer {
       return;
     }
     this.#show(next);
+  }
+
+  // Zoomed: drags pan, so swipes don't navigate.
+  #swipe(swipe) {
+    if (this.#zoom?.zoomed) {
+      return;
+    }
+    this.#step(swipe === Swipe.LEFT ? Step.NEXT : Step.PREV);
   }
 
   #close() {

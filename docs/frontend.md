@@ -29,7 +29,8 @@ src/moments/static/
 │   ├── dates.js                     # groupByMonth(): month headers for date sort
 │   ├── dom.js                       # h() builder, icon helpers, duration()
 │   ├── components/
-│   │   ├── swipe.js                 # Pointer swipe detector (left/right callbacks)
+│   │   ├── gestures.js              # Pointer/wheel → tap, double tap, drag, swipe, pinch, wheel
+│   │   ├── zoom-pan.js              # Zoom/pan state of one element (fit ↔ fill, clamped pan)
 │   │   ├── album-card.js            # (TODO) Album card for landing
 │   │   ├── media-tile.js            # (TODO) Media tile + video badge
 │   │   ├── sort-picker.js           # (TODO) Dropdown + order toggle
@@ -92,7 +93,7 @@ CSS variables with light/dark theme:
 - `main.section`: flex 1, overflow-y auto.
 - `albums-grid`: CSS Grid, auto-fill columns.
 - `media-grid`: CSS Grid, lazy `<img loading="lazy">`.
-- `viewer`: fixed overlay (touch-action: pan-y for swipe).
+- `viewer`: fixed overlay; stage `touch-action: none` (app handles swipe, pan, pinch).
 
 ## Views
 
@@ -138,7 +139,12 @@ export async function renderViewer(app, route, navigate) { ... }
   - **Video**: `<video controls autoplay playsinline poster="/api/albums/{id}/media/{hash}/preview">`.
 - Navigation:
   - **Keyboard**: ← → (prev/next), Esc (close), i (toggle info).
-  - **Swipe**: left (prev), right (next) via `SwipeDetector`.
+  - **Swipe**: left (next), right (prev) via `Gestures`; ignored while zoomed.
+- **Zoom** (images only, `ZoomPan`; each item starts at fit, small images scaled up):
+  - Wheel / trackpad pinch / touch pinch: zoom around pointer (fit … `MAX_ZOOM`).
+  - Drag: pan, clamped to image edges.
+  - Double tap: fit ↔ fill (image covers screen), toward tap point; animated (`--zoom-anim`).
+  - Single tap waits `DOUBLE_TAP_MS` before toggling the top bar.
   - **Buttons**: prev/next/close.
 - **Top bar**: semi-transparent overlay on media; prev · counter · next centered, close/info left. Slides in from top on open; tap on media toggles it. 500 ms (`--viewer-bar-anim`).
 - Preload neighbors (±1 media item).
@@ -220,18 +226,35 @@ Plus:
 - `POLL_INTERVAL_MS`: extraction status poll interval (1000 ms).
 - `SWIPE_THRESHOLD_PX`: min swipe distance (50 px).
 - `TAP_SLOP_PX`: max pointer movement still counted as tap (10 px).
+- `DOUBLE_TAP_MS` / `DOUBLE_TAP_SLOP_PX`: max gap / distance between taps of a double tap (300 ms, 40 px).
+- `WHEEL_ZOOM_RATE`: zoom per wheel px (exponential); `WHEEL_LINE_PX`: line-mode delta → px.
+- `MAX_ZOOM`: max zoom relative to fit (8; higher if fill needs it).
 - `KEY_NAMES`: { ARROW_LEFT, ARROW_RIGHT, ESCAPE, I }.
 - `HEIC_EXTS`: file extensions that need preview fallback.
 
-### Swipe (`components/swipe.js`)
+### Gestures (`components/gestures.js`)
 
 ```js
-export class SwipeDetector {
-  constructor(el, {onSwipeLeft, onSwipeRight, onTap})   // Bind to element; onTap optional
+export class Gestures {
+  constructor(el, {onTap, onDoubleTap, onDrag, onSwipe, onPinch, onWheel}, signal)   // all optional
 }
 ```
 
-Uses pointer events; `onSwipeLeft()` / `onSwipeRight()` past 50px, `onTap()` under 10px.
+Pointer events (move/up on window). Tap under 10px; swipe past 50px (`Swipe.LEFT|RIGHT`); 2 pointers → pinch ratio + midpoint drag.
+
+### ZoomPan (`components/zoom-pan.js`)
+
+```js
+export class ZoomPan {
+  constructor(el, viewport)
+  get zoomed()
+  zoomBy(ratio, clientX, clientY)
+  panBy(dx, dy)
+  toggleFill(clientX, clientY)
+}
+```
+
+CSS `transform` on the element; point under pointer stays fixed while zooming.
 
 ### Prefs (`prefs.js`)
 
@@ -295,6 +318,7 @@ export async function poll(fn, until, intervalMs, signal)
 4. Click media tile → viewer opens, image/video displays.
 5. Keyboard: ← → navigate; Esc close; i toggle info.
 6. Swipe (mobile emulation): left/right navigate.
+6b. Wheel/pinch zoom, drag pans, double tap fit ↔ fill; swipe ignored while zoomed.
 7. Options button → Re-extract starts, status updates.
 8. Sort changes order; reload page → sort order persists (localStorage).
 9. Dark/light mode: toggle OS setting → theme changes immediately (CSS var).

@@ -72,7 +72,7 @@
   align-items: center;
 }
 
-/* Stage takes vertical scroll; horizontal drags become swipes. */
+/* Stage owns all touch input: swipe, pan, pinch (no browser scroll/zoom). */
 .viewer-stage {
   flex: 1;
   height: 100%;
@@ -80,7 +80,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  touch-action: pan-y;
+  touch-action: none;
   user-select: none;
 }
 
@@ -88,6 +88,16 @@
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+}
+
+/* Images scale up to fit too (small ones would stay at natural size). */
+img.viewer-media {
+  width: 100%;
+  height: 100%;
+}
+
+.zoom-animate {
+  transition: transform var(--zoom-anim);
 }
 
 .viewer-message {

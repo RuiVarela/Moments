@@ -71,6 +71,11 @@ export const POLL_INTERVAL_MS = 1000;
 export const PRELOAD_NEIGHBORS = 1;
 export const SWIPE_THRESHOLD_PX = 50;
 export const TAP_SLOP_PX = 10;
+export const DOUBLE_TAP_MS = 300;
+export const DOUBLE_TAP_SLOP_PX = 40;
+export const WHEEL_ZOOM_RATE = 0.002; // Per wheel px: 100 px → ×1.22.
+export const WHEEL_LINE_PX = 16;
+export const MAX_ZOOM = 8;
 
 export const KEY_NAMES = Object.freeze({
   ARROW_LEFT: "ArrowLeft",
