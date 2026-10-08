@@ -46,6 +46,7 @@ export function icon(name) {
     sort: "⇅",
     extract: "⟳",
     photo: "◫",
+    fullscreen: "⛶",
   };
   return icons[name] || "?";
 }

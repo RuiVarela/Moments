@@ -1,7 +1,7 @@
 /* Viewer: full-screen media, one item at a time.
 
    ┌──────────────────────────────────┐
-   │░ ✕  ℹ ░░░░ ❮  3 / 42  ❯ ░░░░░░░░░│  top bar, semi-transparent, over media
+   │░ ✕  ℹ  ⛶ ░░ ❮  3 / 42  ❯ ░░░░░░░░░│  top bar, semi-transparent, over media
    │             [ media ]            │  stage (swipe ◄ ►, tap toggles top bar, zoom/pan)
    │░[ info panel, toggled by "i" ]░░░│  semi-transparent, over media
    └──────────────────────────────────┘
@@ -76,6 +76,7 @@ class Viewer {
       h("div", { className: "viewer-actions" },
         this.#closeBtn,
         navButton("info", "Info", () => this.#toggleInfo()),
+        navButton("fullscreen", "Fullscreen", () => this.#toggleFullscreen()),
       ),
       h("div", { className: "viewer-nav" }, this.#prevBtn, this.#counter, this.#nextBtn),
       h("div"),
@@ -211,6 +212,14 @@ class Viewer {
   #toggleInfo() {
     setBar(this.#info, isHidden(this.#info) ? Bar.SHOWN : Bar.HIDDEN);
     this.#renderInfo();
+  }
+
+  #toggleFullscreen() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
   }
 
   // Coords first; place name swapped in when resolved. Lookup only while panel open (third-party call).
