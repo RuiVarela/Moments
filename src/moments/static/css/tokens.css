@@ -8,13 +8,18 @@
   --color-fg-secondary: #666666;
   --color-accent: #2563eb;
   --color-accent-hover: #1d4ed8;
-  --color-success: #16a34a;
   --color-error: #dc2626;
   --color-error-bg: #fee2e2;
   --color-viewer-bg: #000000;
   --color-viewer-fg: #ffffff;
+  --color-on-accent: #ffffff;
+  --color-badge-bg: rgba(0, 0, 0, 0.65);
   --color-viewer-link: #93c5fd;
   --color-viewer-bar: rgba(0, 0, 0, 0.5);
+  --color-viewer-hover: rgba(255, 255, 255, 0.12);
+
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.15);
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -36,11 +41,11 @@
   --font-xl: 1.25rem;
   --font-2xl: 1.5rem;
 
+  --transition-fast: 0.2s;
   --viewer-bar-anim: 500ms ease-out;
   --zoom-anim: 250ms ease-out;
 
   --z-dropdown: 100;
-  --z-modal: 1000;
   --z-viewer: 2000;
 }
 
@@ -54,5 +59,7 @@
     --color-accent: #3b82f6;
     --color-accent-hover: #2563eb;
     --color-error-bg: #7f1d1d;
+    --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.6);
+    --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.6);
   }
 }

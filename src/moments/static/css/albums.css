@@ -1,9 +1,7 @@
 /* Landing page (albums grid). */
 
 .albums {
-  display: block;
   padding: var(--space-8);
-  overflow-y: auto;
 }
 
 @media (max-width: 600px) {
@@ -33,12 +31,12 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .album-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card);
 }
 
 .album-cover {
@@ -75,7 +73,6 @@
 .album-name {
   font-size: var(--font-lg);
   font-weight: bold;
-  color: var(--color-fg);
 }
 
 .album-meta {
