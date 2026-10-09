@@ -1,10 +1,27 @@
 # Moments
 
-Family photo gallery.
-Very simple list of albums. Intended to run on a low spec self hosted machine.
+Family photo gallery.  
+Very simple list of albums. Intended to run on a low spec self hosted machine.  
 Reads folder hierarchies, extracts metadata (EXIF, GPS, video info), and serves a minimal web UI.
 
 This was developed using AI.
+
+## Screenshots
+Albums, each with a cover:
+
+![Albums](docs/screenshots/albums.png)
+
+Album, grouped by month and sortable:
+
+![Album](docs/screenshots/album.png)
+
+Viewer with info panel (`i`). Arrows or swipe to navigate; wheel or pinch to zoom:
+
+![Viewer](docs/screenshots/viewer.png)
+
+Mobile:
+
+<img src="docs/screenshots/mobile.png" alt="Mobile album" width="300">
 
 ## Development
 
