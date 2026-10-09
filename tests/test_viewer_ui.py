@@ -5,6 +5,7 @@ import threading
 import time
 from collections.abc import Generator
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 import uvicorn
@@ -12,7 +13,11 @@ import uvicorn
 from moments.app import create_app
 from moments.config import Config
 
-playwright_api = pytest.importorskip("playwright.sync_api")
+# Static import for mypy; runtime skips when Playwright is absent.
+if TYPE_CHECKING:
+    import playwright.sync_api as playwright_api
+else:
+    playwright_api = pytest.importorskip("playwright.sync_api")
 
 _HOST = "127.0.0.1"
 _ALBUM = "vacation"
@@ -21,7 +26,7 @@ _POLL_SEC = 0.02
 _TIMEOUT_MS = 5000
 
 # Wider than test images' 4:3, so fill zooms.
-_VIEWPORT = {"width": 1200, "height": 600}
+_VIEWPORT: "playwright_api.ViewportSize" = {"width": 1200, "height": 600}
 _CENTER = (600, 300)
 _SETTLE_MS = 500  # > double-tap window and zoom animation.
 
