@@ -1,9 +1,7 @@
 # Moments
 
-Family photo gallery. 
-
+Family photo gallery.
 Very simple list of albums. Intended to run on a low spec self hosted machine.
-
 Reads folder hierarchies, extracts metadata (EXIF, GPS, video info), and serves a minimal web UI.
 
 This was developed using AI.
