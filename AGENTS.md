@@ -2,9 +2,9 @@
 
 This repository is a small photo album
 
-## Project Documentions
+## Project Documention
 - Documentation files are stored on docs
-- Please keep documenation up to date
+- Please keep documentation up to date
 
 ## Working conventions
 - Never read, inspect, search, or access files outside the project folder.
